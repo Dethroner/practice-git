@@ -1,2 +1,0 @@
-My first line in project
-Test line
