@@ -1,1 +1,32 @@
+1. Создаем шаблон виртуальной машины
+gcloud compute instance-templates create python-app --boot-disk-size=10GB --image=ubuntu-1604-xenial-v20170815a --image-project=ubuntu-os-cloud --tags http-server --machine-type=f1-micro --restart-on-failure --metadata startup-script='wget -O -  https://github.com/Dethroner/practice-git/gistfile2.txt | bash'
+2. Создаем группу серверов
+gcloud compute instance-groups managed create simple-app --template=python-app --size 1 --region=europe-west1
+3. Проверяем
+gcloud compute instance-groups managed list
+4. Меняем параметры автомасштабирования
+gcloud compute instance-groups managed set-autoscaling simple-app --max-num-replicas=5 --min-num-replicas=1 --scale-based-on-cpu --target-cpu-utilization 0.8 --cool-down-period 240 --region europe-west1
+5. Задалем параметры для service point в LB
+gcloud compute instance-groups managed set-named-ports simple-app --named-ports http:80 --region europe-west1
+6. Создаем HealthCheck
+gcloud compute http-health-checks create pyapp --check-interval=5s --timeout 5 --request-path /health
+7. Используем HealtchCheck в создании backendа для последующего использования в LB
+gcloud compute backend-services create simple-app --http-health-checks=pyapp --global
+8. Создадим балансировщик нагрузки
+gcloud compute url-maps create simpleapp-lb --default-service simple-app
+9. Подключим правила проброса трафика через LB
+gcloud compute target-http-proxies create simpleapp-proxy --url-map simpleapp-lb
+10. Добавим правила обработки трафика
+gcloud compute forwarding-rules create simpleapp-http-forwarding --global --ports 80 --target-http-proxy simpleapp-proxy
+11. Заводим правила LB
+gcloud compute backend-services add-backend simple-app --instance-group  simple-app --balancing-mode UTILIZATION --max-utilization 0.6 --instance-group-region europe-west1
+
+В конце мы получаем созданную группу серверов, с одним запущенным инстансом. Сгенерировать нагрузку в нашем случае можно используя циклическое посещение сайта через баланссировщик.
+
+Достаточно будет запустить
+while true; do (curl http://<адрес балансировщика>&); sleep 5; done
+
+При необходимости, можно сокращать время ожидания (sleep) до 3 и меньше.
+
+ДЗ:
 gcloud compute instances create --boot-disk-size=10GB --image=ubuntu-1604-xenial-v20170815a --image-project=ubuntu-os-cloud --machine-type=g1-small --tags puma-server --restart-on-failure --zone=europe-west1-b reddit-app
