@@ -6,7 +6,7 @@ apt-get --assume-yes install mongodb-org
 systemctl start mongod
 systemctl enable mongod
 apt-get --assume-yes update
-apt-get --assume-yes install ruby-full ruby-bundler buil-essential
+apt-get --assume-yes install ruby-full ruby-bundler build-essential
 cd "$HOME" || exit
 git clone -b monolith https://github.com/express42/reddit.git
 cd reddit && bundle install
