@@ -1,5 +1,5 @@
 1. Создаем шаблон виртуальной машины
-gcloud compute instance-templates create python-app --boot-disk-size=10GB --image=ubuntu-1604-xenial-v20170815a --image-project=ubuntu-os-cloud --tags http-server --machine-type=f1-micro --restart-on-failure --metadata startup-script='wget -O -  https://github.com/Dethroner/practice-git/Task1/gistfile2.txt | bash'
+gcloud compute instance-templates create python-app --boot-disk-size=10GB --image=ubuntu-1604-xenial-v20170815a --image-project=ubuntu-os-cloud --tags http-server --machine-type=f1-micro --restart-on-failure --metadata startup-script='wget -O -  https://raw.githubusercontent.com/Dethroner/practice-git/master/Task1/gistfile2.txt | bash'
 2. Создаем группу серверов
 gcloud compute instance-groups managed create simple-app --template=python-app --size 1 --region=europe-west1
 3. Проверяем
