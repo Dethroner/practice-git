@@ -2,7 +2,7 @@
 
 <details><summary>01. Система контроля версий. Принципы работы с Git.</summary>
 <p>
-Знакомство с [git:](https://githowto.com/ru)
+Знакомство с git [Инструкция:](https://githowto.com/ru)
 Канал с видеоматериалами по [git:](https://www.youtube.com/playlist?list=PLg5SS_4L6LYstwxTEOU05E0URTHnbtA0l)
 </p>
 </details>
