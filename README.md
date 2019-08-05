@@ -2,8 +2,12 @@
 
 <details><summary>01. Система контроля версий. Принципы работы с Git.</summary>
 <p>
-Знакомство с git [Инструкция:](https://githowto.com/ru)
-Канал с видеоматериалами по [git:](https://www.youtube.com/playlist?list=PLg5SS_4L6LYstwxTEOU05E0URTHnbtA0l)
+
+### Git:
+
+Знакомство с git [Инструкция:](https://githowto.com/ru).
+Канал с видеоматериалами по [git:](https://www.youtube.com/playlist?list=PLg5SS_4L6LYstwxTEOU05E0URTHnbtA0l).
+
 </p>
 </details>
 
@@ -172,7 +176,8 @@ self.assertEqual(1, 1)
 
 <details><summary>03. Знакомство с облачной инфраструктурой и облачными сервисами.</summary>
 <p>
-### Поиграемся с gcloud
+
+### gcloud:
 
 Устанавливаем по [инструкции:](https://cloud.google.com/sdk/docs)
 
@@ -253,6 +258,7 @@ gcloud compute instance add-tags bastion --zone west1-b --tags pritunl
 <details><summary>04. Основные сервисы Google Cloud Platform (GCP)</summary>
 <p>
 
+### GCP:
 
 Написаны простейшие скрипты для установки [ruby:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/install_ruby.sh), [mogodb:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/install_mongodb.sh), [puma_app:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/deploy.sh) и объединены в один скрипт [startup-script:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/startup-script.sh)  
 
