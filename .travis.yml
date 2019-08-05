@@ -1,7 +1,1 @@
-dist: trusty
-sudo: required
-language: bash
-before_install:
-  - curl https://raw.githubusercontent.com/SJay3/otus-homeworks/linting-tests/run.sh | bash
-notifications:
-  slack: testlanworkspace:EGX8NUPEnnbCBBRIaX8EJwPG
+travis encrypt "testlanworkspace:EGX8NUPEnnbCBBRIaX8EJwPG" --add notifications.slack -r Dethroner/pracrice-git
