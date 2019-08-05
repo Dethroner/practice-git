@@ -3,6 +3,5 @@ sudo: required
 language: bash
 before_install:
   - curl https://raw.githubusercontent.com/SJay3/otus-homeworks/linting-tests/run.sh | bash
-  - curl https://raw.githubusercontent.com/SJay3/otus-homeworks/master/run.sh | bash
 notifications:
   slack: testlanworkspace:EGX8NUPEnnbCBBRIaX8EJwPG
