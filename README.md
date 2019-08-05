@@ -5,8 +5,8 @@
 
 ### Git:
 
-Знакомство с git [Инструкция:](https://githowto.com/ru).
-Канал с видеоматериалами по [git:](https://www.youtube.com/playlist?list=PLg5SS_4L6LYstwxTEOU05E0URTHnbtA0l).
+Знакомство с git [Инструкция](https://githowto.com/ru).
+Канал с видеоматериалами по [git](https://www.youtube.com/playlist?list=PLg5SS_4L6LYstwxTEOU05E0URTHnbtA0l).
 
 </p>
 </details>
@@ -26,7 +26,7 @@ Pull Request Template - это технология github для шаблони
 Для его использования, необходимо в корне проекта создать папку `.github`, в которую поместить шаблон с именем `PULL_REQUEST_TEMPLATE.md`
 
 ### Интеграция Slack с github
-Для интеграции slack с github Для начала необходимо добавить приложение github в slack. [Инструкция:](https://get.slack.help/hc/en-us/articles/232289568-GitHub-for-Slack)
+Для интеграции slack с github Для начала необходимо добавить приложение github в slack [инструкция](https://get.slack.help/hc/en-us/articles/232289568-GitHub-for-Slack).
 Далее, создать канал в в slack (мой канал: #995), после чего выполнить команаду:
 
     /github subscribe Dethroner/practice-git commits:all
@@ -37,7 +37,7 @@ Pull Request Template - это технология github для шаблони
 Для обеспечения безопасности, данный токен необходимо зашифровать. Это можно сделать с помощью утилиты travis.
 <details><summary>Инструкция по интеграции со slack (для Ubuntu 18.04):</summary>
 <p>
-1. Необходимо авторизоваться через github на сайте [travis:](https://travis-ci.com)
+1. Необходимо авторизоваться через github на сайте [travis](https://travis-ci.com).
 2. Удаляем стандартый ruby из ubuntu, т.к. он немного кривой.
 
 ```shell
@@ -143,13 +143,13 @@ travis encrypt "devops-team-otus:<ваш_токен>#dmitriy_usachev" \
 
 Не завершена пока!!!
 
-Устанавливаем [ruby:](https://www.ruby-lang.org/ru/documentation/installation/), [rubygems:](https://rubygems.org/pages/download) и с помощью gem установить [travis:](https://github.com/travis-ci/travis.rb#installation).  
+Устанавливаем [ruby](https://www.ruby-lang.org/ru/documentation/installation/), [rubygems](https://rubygems.org/pages/download) и с помощью gem установить [travis](https://github.com/travis-ci/travis.rb#installation).  
 
-[Авторизируемся через утилиту travis:](https://github.com/travis-ci/travis.rb#login)    
+[Авторизируемся через утилиту travis](https://github.com/travis-ci/travis.rb#login).    
 ```
     travis login --com
 ```
-[Шифруем пароль:](https://github.com/travis-ci/travis.rb#encrypt)  
+[Шифруем пароль](https://github.com/travis-ci/travis.rb#encrypt).  
 ```
     travis encrypt "<команда>:<токен>#<имя_канала>" --add notifications.slack.rooms --com
 ```
@@ -179,7 +179,7 @@ self.assertEqual(1, 1)
 
 ### gcloud:
 
-Устанавливаем по [инструкции:](https://cloud.google.com/sdk/docs)
+Устанавливаем по [инструкции](https://cloud.google.com/sdk/docs).
 
 Авторизируемся в системе:
 ```
@@ -213,7 +213,7 @@ gcloud compute instances create --image-project ubuntu-os-cloud --image-family u
 ```
 gcloud compute instances add-tags bastion --tags http-server,https-server --zone west1-b
 ```
-[документация:](https://cloud.google.com/sdk/gcloud/reference/)
+[Документация](https://cloud.google.com/sdk/gcloud/reference/).
 
 ### SSH:
 
@@ -239,7 +239,7 @@ Host someinternalhost
 
 ### VPN:
 
-Устанавливаем [Pritunl:](https://docs.pritunl.com/docs/installation#section-linux-repositories)
+Устанавливаем [Pritunl](https://docs.pritunl.com/docs/installation#section-linux-repositories).
 
 Создаём правило для фаервола и применяем к хосту bastion
 
@@ -260,7 +260,7 @@ gcloud compute instance add-tags bastion --zone west1-b --tags pritunl
 
 ### GCP:
 
-Написаны простейшие скрипты для установки [ruby:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/install_ruby.sh), [mogodb:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/install_mongodb.sh), [puma_app:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/deploy.sh) и объединены в один скрипт [startup-script:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/startup-script.sh)  
+Написаны простейшие скрипты для установки [ruby](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/install_ruby.sh), [mongodb](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/install_mongodb.sh), [puma_app](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/deploy.sh) и объединены в один скрипт [startup-script](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/startup-script.sh). 
 
 Пример отправки скрипта в GCP хранилище:
 
@@ -289,7 +289,7 @@ gcloud compute instances create reddit-app \
 
 ```
 
-Инструкция [gsutil:](https://cloud.google.com/storage/docs/quickstart-gsutil)
+Инструкция [gsutil](https://cloud.google.com/storage/docs/quickstart-gsutil).
 
 </p>
 </details>
