@@ -1,6 +1,0 @@
-#!/bin/bash
-apt-get update
-apt-get install -fy python-setuptools build-essential python-dev
-easy_install flask psutil
-wget https://raw.githubusercontent.com/Dethroner/practice-git/master/Task1/gistfile3.txt -O app.py
-FLASK_APP=app.py flask run --host=0.0.0.0 --port=80
