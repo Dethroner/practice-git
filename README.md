@@ -2,8 +2,8 @@
 
 <details><summary>01. Система контроля версий. Принципы работы с Git.</summary>
 <p>
-Знакомство с [git](https://githowto.com/ru)
-Канал с видеоматериалами по [git] (https://www.youtube.com/playlist?list=PLg5SS_4L6LYstwxTEOU05E0URTHnbtA0l)
+Знакомство с [git:](https://githowto.com/ru)
+Канал с видеоматериалами по [git:] (https://www.youtube.com/playlist?list=PLg5SS_4L6LYstwxTEOU05E0URTHnbtA0l)
 </p>
 </details>
 
@@ -22,7 +22,7 @@ Pull Request Template - это технология github для шаблони
 Для его использования, необходимо в корне проекта создать папку `.github`, в которую поместить шаблон с именем `PULL_REQUEST_TEMPLATE.md`
 
 ### Интеграция Slack с github
-Для интеграции slack с github Для начала необходимо добавить приложение github в slack. [Инструкция](https://get.slack.help/hc/en-us/articles/232289568-GitHub-for-Slack)
+Для интеграции slack с github Для начала необходимо добавить приложение github в slack. [Инструкция:](https://get.slack.help/hc/en-us/articles/232289568-GitHub-for-Slack)
 Далее, создать канал в в slack (мой канал: #995), после чего выполнить команаду:
 
     /github subscribe Dethroner/practice-git commits:all
@@ -33,7 +33,7 @@ Pull Request Template - это технология github для шаблони
 Для обеспечения безопасности, данный токен необходимо зашифровать. Это можно сделать с помощью утилиты travis.
 <details><summary>Инструкция по интеграции со slack (для Ubuntu 18.04)</summary>
 <p>
-1. Необходимо авторизоваться через github на сайте [travis](https://travis-ci.com)
+1. Необходимо авторизоваться через github на сайте [travis:](https://travis-ci.com)
 2. Удаляем стандартый ruby из ubuntu, т.к. он немного кривой.
 
 ```shell
@@ -137,11 +137,7 @@ travis encrypt "devops-team-otus:<ваш_токен>#dmitriy_usachev" \
 <details><summary>Инструкция по интеграции со slack (для Windows)</summary>
 <p>
 
-Добавляем отправку оповещений из Travis CI в Slack   
-
-[Travis CI:](https://travis-ci.org/)
-
-Устанавливаем [ruby](https://www.ruby-lang.org/ru/documentation/installation/), [rubygems](https://rubygems.org/pages/download) и с помощью gem установить [travis](https://github.com/travis-ci/travis.rb#installation).  
+Устанавливаем [ruby:](https://www.ruby-lang.org/ru/documentation/installation/), [rubygems:](https://rubygems.org/pages/download) и с помощью gem установить [travis:](https://github.com/travis-ci/travis.rb#installation).  
 
 [Авторизируемся через утилиту travis:](https://github.com/travis-ci/travis.rb#login)    
 
