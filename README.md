@@ -1,5 +1,7 @@
 # Dethroner
 
+[![Build Status](https://travis-ci.org/Dethroner/practice-git.svg?branch=master)](https://travis-ci.org/Dethroner/practice-git)
+
 <details><summary>01. Система контроля версий. Принципы работы с Git.</summary>
 <p>
 
