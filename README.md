@@ -174,7 +174,7 @@ self.assertEqual(1, 1)
 <p>
 ### Поиграемся с gcloud
 
-Устанавливаем по [инструкции:]("https://cloud.google.com/sdk/docs")
+Устанавливаем по [инструкции:](https://cloud.google.com/sdk/docs)
 
 Авторизируемся в системе:
 ```
@@ -254,7 +254,7 @@ gcloud compute instance add-tags bastion --zone us-central1-c --tags pritunl
 <p>
 
 
-Написаны простейшие скрипты для установки [ruby](install_ruby.sh), [mogodb](install_mongodb.sh), [puma_app](deploy.sh) и объединены в один скрипт [startup-script](startup-script.sh)  
+Написаны простейшие скрипты для установки [ruby:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/install_ruby.sh), [mogodb:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/install_mongodb.sh), [puma_app:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/deploy.sh) и объединены в один скрипт [startup-script:](https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/startup-script.sh)  
 
 Пример отправки скрипта в GCP хранилище:
 
