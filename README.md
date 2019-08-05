@@ -199,14 +199,14 @@ gcloud compute project-info add-metadata --metadata-from-file ssh-keys=~/.ssh/gc
 
 Создаём инстансы:
 ```
-gcloud compute instances create bastion --image-project ubuntu-os-cloud --image-family ubuntu-1604-lts  --zone us-central1-c --preemptible --machine-type f1-micro
+gcloud compute instances create bastion --image-project ubuntu-os-cloud --image-family ubuntu-1604-lts  --zone west1-b --preemptible --machine-type f1-micro
 ...
-gcloud compute instances create --image-project ubuntu-os-cloud --image-family ubuntu-1604-lts  --zone us-central1-c --preemptible --machine-type f1-micro --no-address
+gcloud compute instances create --image-project ubuntu-os-cloud --image-family ubuntu-1604-lts  --zone west1-b --preemptible --machine-type f1-micro --no-address
 ```
 Открываем http & https на bastion:
 
 ```
-gcloud compute instances add-tags bastion --tags http-server,https-server --zone us-central1-c
+gcloud compute instances add-tags bastion --tags http-server,https-server --zone west1-b
 ```
 [документация:](https://cloud.google.com/sdk/gcloud/reference/)
 
@@ -240,7 +240,7 @@ Host someinternalhost
 
 ```
 gcloud compute firewall-rules create pritunl --allow udp:15526 --target-tags pritunl
-gcloud compute instance add-tags bastion --zone us-central1-c --tags pritunl
+gcloud compute instance add-tags bastion --zone west1-b --tags pritunl
 ```
 
 ### Lets encrypt для Pritunl:
@@ -266,20 +266,21 @@ gsutil cp startup-script.sh gs://gcloud-test-user-bckt/
 Создаём правило в фаерове:
 
 ```
-gcloud compute firewall-rules create puma-port --allow=tcp:9292 --target-tags=puma
+gcloud compute firewall-rules create default-puma-server --allow=tcp:9292 --target-tags=puma-server
 ```
 Создаём инстанс cо скриптом автозапуска и открываем порт: 
 
 ```
 gcloud compute instances create reddit-app \
   --boot-disk-size=10GB \
-  --image-family ubuntu-1604-lts \
+  --image=ubuntu-1604-xenial-v20170815a \
   --image-project=ubuntu-os-cloud \
   --machine-type=g1-small \
-  --tags puma \
+  --tags puma-server \
   --restart-on-failure \
-  --zone us-central1-c \
-  --metadata startup-script-url=gs://gcloud-test-user-bckt/startup-script.sh
+  --zone west1-b \
+  --metadata startup-script-url='wget -O -  https://raw.githubusercontent.com/Dethroner/practice-git/master/config-scripts/startup-script.sh | bash'
+
 ```
 
 Инструкция [gsutil:](https://cloud.google.com/storage/docs/quickstart-gsutil)
