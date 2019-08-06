@@ -1,0 +1,13 @@
+{
+    "project_id": "Required. Your project id",
+    "source_image_family": "Required. Source image family",
+    "machine_type": "The machine type. f1-micro by default",
+    "ssh_username": "Ssh username for temp vm. appuser by default",
+    "disk_type": "pd-standard or pd-ssd. Boot disk type. pd-standart by default",
+    "disk_size": "10",
+    "image_description": "Description of your image",
+    "preemptible": "false",
+    "tags": "Assign network tags to apply firewall rules to VM instance",
+    "network": "The Google Compute network id or URL to use for the launched instance. Defaults to default. If the value is not a URL, it will be interpolated to projects/((network_project_id))/global/networks/((network)).",
+    "subnetwork": "The Google Compute subnetwork id or URL to use for the launched instance. Only required if the network has been created with custom subnetting. Note, the region of the subnetwork must match the region or zone in which the VM is launched. If the value is not a URL, it will be interpolated to projects/((network_project_id))/regions/((region))/subnetworks/((subnetwork))"
+}
