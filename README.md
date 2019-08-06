@@ -1,4 +1,4 @@
-# Dethroner    [![Build Status](https://travis-ci.org/Dethroner/practice-git.svg?branch=master)](https://travis-ci.org/Dethroner/practice-git)
+# Dethroner
 
 <details><summary>01. Система контроля версий. Принципы работы с Git.</summary>
 <p>
@@ -11,7 +11,7 @@
 </p>
 </details>
 
-<details><summary>02. Командные чаты и системы управления задачами.</summary>
+<details><summary>02. Командные чаты и системы управления задачами.</summary> [![Build Status](https://travis-ci.org/Dethroner/practice-git.svg?branch=master)](https://travis-ci.org/Dethroner/practice-git)
 <p>
 
 ### ChatOps:
@@ -119,44 +119,42 @@ gem install bundler
 gem install travis
 ```
 
-11. Авторизуемся чезер утилиту travis
-
-```shell
-travis login --com
-```
-
-12. Теперь зашифруем токен с помощью утилиты travis. Мы должны находиться в папке с нашим репозиторием и в нем должен присутствовать файл `.travis.yml`
-
-```shell
-cd ~/Dethroner/practice-git
-travis encrypt "testlanworkspace:<ваш_токен>#995" \
---add notifications.slack.rooms --com
-```
-
-13. travis автоматически добавит в файл `.travis.yml` шифрованый токен для уведомлений в slack. Остается только закоммитить изменения в файле.
-
 </p>
 </details>
 
 <details><summary>Инструкция по интеграции со slack (для Windows):</summary>
 <p>
 
-Не завершена пока!!!
-
-Устанавливаем [ruby](https://www.ruby-lang.org/ru/documentation/installation/), [rubygems](https://rubygems.org/pages/download) и с помощью gem установить [travis](https://github.com/travis-ci/travis.rb#installation).  
-
-[Авторизируемся через утилиту travis](https://github.com/travis-ci/travis.rb#login).    
-```
-    travis login --com
-```
-[Шифруем пароль](https://github.com/travis-ci/travis.rb#encrypt).  
-```
-    travis encrypt "<команда>:<токен>#<имя_канала>" --add notifications.slack.rooms --com
-```
+Устанавливаем [ruby](https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.5.5-1/rubyinstaller-devkit-2.5.5-1-x64.exe) и с помощью gem установить [travis](https://github.com/travis-ci/travis.rb#installation).  
 
 </p>
 </details>
 
+### Шифруем информацию о чате
+
+[Авторизируемся через утилиту travis](https://github.com/travis-ci/travis.rb#login). 
+
+```shell
+travis login --com
+```
+
+Или через плагин Travis в Slack. В плагине же будет сформирован токен и предложены команды для подключения к каналу в том числе команда для шифрования токена.
+
+[Шифруем токен](https://github.com/travis-ci/travis.rb#encrypt) с помощью утилиты travis. Команду нужно запускать внутри репозитория и в нем должен присутствовать файл `.travis.yml`.
+
+```shell
+cd ~/Dethroner/practice-git
+travis encrypt "testlanworkspace:<ваш_токен>#995" --add notifications.slack.rooms --com
+```
+
+travis автоматически добавит в файл `.travis.yml` шифрованый токен для уведомлений в slack. Остается только закоммитить изменения в файле.
+
+### Проверка работы Travis
+
+Проверить работу можно дописав код в [.travis.yml](https://raw.githubusercontent.com/Dethroner/practice-git/master/.travis.yml) перед шифрованым токеном.
+
+На странице Travis-а содержится информация о статусе последнего билда. Нажмите на статусные иконки один раз. Выберите тип Markdown и скопируйте текст для вставки.Вставьте скопированный текст в начало файла README.md и обновите запушьте измнения на GitHub.
+Можно вновь попытаться поломать тесты, чтобы посмотреть, как обновляются статусные иконки.
 
 ### Самостоятельная работа (Добиться успешного билда)
 В файле `play-travis/test.py` была допущена ошибка в 6 строке.
