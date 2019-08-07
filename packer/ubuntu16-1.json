@@ -2,7 +2,7 @@
   "builders": [
     {
       "type": "googlecompute",
-      "project_id": "west-249106",
+      "project_id": "project_id",
       "image_name": "reddit-base-{{timestamp}}",
       "source_image": "ubuntu-1604-xenial-v20190628",
       "zone": "europe-west1-b",
