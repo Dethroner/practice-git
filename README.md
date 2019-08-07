@@ -641,6 +641,7 @@ provisioner "file" {
 
 <details><summary>07. Продолжение знакомства с Terraform.</summary>
 <p>
+
 В данном домашнем задании было сделано:
 - Импорт существующего правила firewall
 - Структуризация ресурсов
@@ -657,6 +658,17 @@ provisioner "file" {
 ```shell
 terraform import google_compute_firewall.firewall_ssh default-allow-ssh
 ```
+#### Взаимосвязи ресурсов.
+- неявная: когда ресурc terraform'а ссылается на объект внутри другого ресурса `'nat_ip = "${google_compute_address.reddit-app-ip.address}"'`
+- явная: в описании ресурса присутствует ссылка на другой ресурс  - `"depends_on = [
+      "google_compute_instance.reddit-db",
+  ]"`
+
+#### Работа с модулями:
+Модули позволяют разделять ресурсы и облегчают управление ими. Инфраструктура разбита на 3 модуля:
+- [app](terraform/modules/app) - web часть сервиса
+- [db](terraform/modules/db) - модуль для работы с базами данных
+- [vpc](terraform/modules/vpc) - модуль для управления доступом к проекту
 
 
 </p>
