@@ -508,7 +508,133 @@ resource "google_compute_project_metadata" "many_keys" {
 ```
 Нельзя использовать сразу 2 этих ресурса, т.к. терраформ будет затирать данные, добавленные одним из ресурсов. Так же, добавленные через веб-интерфейс ключи тоже будут удалены, если терраформ управляет метадатой.
 
+### Работа с Terraform
+1. Создать папку terraform перейти в нее. Создать файл main.tf
+```
+terraform {
+  # версия terraform
+  required_version = "~> 0.11.11"
+}
 
+provider "google" {
+  # Версия провайдера
+  version = "2.0.0"
+  # id проекта
+  project = "west-249106"
+  region = "europe-west1-b"
+}
+```
+2. Загрузить провайдер GCP:
+```shell
+terraform init
+```
+3.В файле main.tf после определения провайдера, добавить ресурс для создания инстанса VM в GCP:
+```
+resource "google_compute_instance" "app" {
+  name         = "reddit-app"
+  machine_type = "g1-small"
+  zone         = "europe-west1-b"
+  # определение загрузочного диска
+  boot_disk {
+    initialize_params {
+      image = "reddit-base-1565159335"
+    }
+  }
+  # определение сетевого интерфейса
+  network_interface {
+    # сеть, к которой присоединить данный интерфейс
+    network = "default"
+    # использовать ephemeral IP для доступа из Интернет
+    access_config {}
+  }
+}
+```
+4. Выполнить  команду  планирования  изменений.
+5. Создать VM согласно описанию.
+6. После удачного выполнения, посмотреть внешний IP:
+```shell
+terraform show | grep nat_ip
+```
+7. Добавить секци. с SSH key:
+```
+resource "google_compute_instance" "app" {
+...
+metadata {
+    sshKeys = "appuser:${file("~/.ssh/appuser.pub")}"
+  }
+...
+} 
+```
+8. Проверить SSH подключение:
+```shell
+ssh appuser@<внешний_IP>
+```
+9. Создать файл outputs.tf в директории terraform со следующим содержимым
+```
+output "app_external_ip" {
+  value = "${google_compute_instance.app.network_interface.0.access_config.0.nat_ip}"
+}
+```
+Используем команду для примениея и обновления
+```shell
+terraform refresh
+```
+10. Определить правило фаервола для нашего приложения. Добавим в main.tf следущий ресурс:
+```
+resource "google_compute_firewall" "firewall_puma" {
+  name    = "allow-puma-default"
+# Название сети, в которой действует правило
+  network = "default"
+# Какой доступ разрешить
+  allow {
+    protocol = "tcp"
+    ports    = ["9292"]
+  }
+# Каким адресам разрешаем доступ
+  source_ranges = ["0.0.0.0/0"]
+# Правило применимо для инстансов с тегом …
+  target_tags = ["reddit-app"]
+}
+```
+Планируем и применяем изменения.
+```shell
+terraform plan
+terraform apply
+```
+11. Добавить тег инстансу VM:
+```
+resource "google_compute_instance" "app" {
+...
+tags = ["reddit-app"]
+```
+Планируем и применяем изменения.
+12. Определить параметры подключения провиженеров к VM.
+```
+  connection {
+    type     = "ssh"
+    user     = "appuser"
+    agent = false
+    private_key = "${file("~/.ssh/appuser")}"
+  }
+```
+13. Внутрь ресурса, содержащего описание VM, вставить секцию провижинера типа ﬁle, который позволяет копировать содержимое файла на удаленную машину.
+```
+provisioner "file" {
+ source      = "files/puma.service"
+ destination = "/tmp/puma.service"
+}
+```
+14. Добавить еще один провиженер для запуска скрипта деплоя приложения на создаваемом инстансе.
+```
+  provisioner "remote-exec" {
+    script = "files/deploy.sh"
+  }
+```
+Планируем и применяем изменения.
+15. Проверить работу перейдя по ссылке в браузере:
+```
+<IP_nat>:9292
+```
 
 </p>
 </details>
