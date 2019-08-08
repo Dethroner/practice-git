@@ -502,7 +502,7 @@ resource "google_compute_project_metadata_item" "appuser1" {
 resource "google_compute_project_metadata" "many_keys" {
   project = "${var.project}"
   metadata = {
-    ssh-keys = "appuser2:${file(var.public_key_path)} \nappuser3:${file(var.public_key_path)}"
+    ssh-keys = "appuser:${file(var.public_key_path)}"
   }
 }
 ```
