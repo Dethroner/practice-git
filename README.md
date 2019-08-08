@@ -407,7 +407,7 @@ packer build -var-file=variables.json ubuntu16.json
 </p>
 </details>
 
-<details><summary>06. Практика IaС. Знакомство с Terraform/</summary>
+<details><summary>06. Практика IaС. Знакомство с Terraform.</summary>
 <p>
 
 В данном домашнем задании будет сделано:
@@ -631,7 +631,57 @@ provisioner "file" {
   }
 ```
 Планируем и применяем изменения.
+
 15. Проверить работу перейдя по ссылке в браузере:
+```
+<IP_nat>:9292
+```
+### Параметризация переменных
+1. [Пример](https://github.com/Dethroner/practice-git/tree/master/terraform/examples/1) того как использовать входную переменную ее нужно сначала определить в одном из конфигурационных файлов. Создать для этих целей еще один конфиг файл variables.tf
+```
+variable project {
+  description = "Project ID"
+}
+variable region {
+  description = "Region"
+  default = "europe-west1-b"
+}
+variable public_key_path {
+  description = "Path to the public key used for ssh access"
+}
+variable disk_image {
+  description = "Disk image"
+} 
+```
+2. Теперь можем использовать input переменные в определении других ресурсов. Чтобы получить значение пользовательской переменной внутри ресурса используется синтакс “${var.var_name}”.
+Определить соответствующие параметры ресурсов main.tf через переменные:
+```
+provider "google" {
+  project = "${var.project}"
+  region  = "${var.region}"
+}
+...
+boot_disk {
+  initialize_params {
+    image = "${var.disk_image}"
+  }
+}
+...
+metadata {
+    sshKeys = "appuser:${file(var.public_key_path)}"
+  }
+...
+
+```
+3. Определить переменные используя специальный файл terraform.tfvars, из которого тераформ загружает значения автоматически при каждом запуске. 
+```
+project = "Project_ID"
+public_key_path = "~/.ssh/appuser.pub"
+disk_image = "reddit-base-1565159335"
+```
+4. Планируем и применяем изменения.
+
+5. Проверить работу перейдя по ссылке в браузере:
 ```
 <IP_nat>:9292
 ```
