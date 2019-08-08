@@ -509,7 +509,7 @@ resource "google_compute_project_metadata" "many_keys" {
 Нельзя использовать сразу 2 этих ресурса, т.к. терраформ будет затирать данные, добавленные одним из ресурсов. Так же, добавленные через веб-интерфейс ключи тоже будут удалены, если терраформ управляет метадатой.
 
 ### Работа с Terraform
-1. Создать папку terraform перейти в нее. Создать файл main.tf
+1. Создать папку terraform перейти в нее. Создать файл main.tf [Пример](https://github.com/Dethroner/practice-git/tree/master/terraform/examples/1)
 ```
 terraform {
   # версия terraform
@@ -637,7 +637,7 @@ provisioner "file" {
 <IP_nat>:9292
 ```
 ### Параметризация переменных
-1. [Пример](https://github.com/Dethroner/practice-git/tree/master/terraform/examples/1) того как использовать входную переменную ее нужно сначала определить в одном из конфигурационных файлов. Создать для этих целей еще один конфиг файл variables.tf
+1. [Пример](https://github.com/Dethroner/practice-git/tree/master/terraform/examples/2) того как использовать входную переменную ее нужно сначала определить в одном из конфигурационных файлов. Создать для этих целей еще один конфиг файл variables.tf
 ```
 variable project {
   description = "Project ID"
