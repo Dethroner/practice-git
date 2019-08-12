@@ -301,7 +301,7 @@ p.s. Возможно потребуется дополнительная уст
 </p>
 </details>
 
-<details><summary>04. Основные сервисы Google Cloud Platform (GCP)</summary>
+<details><summary>04. Основные сервисы Google Cloud Platform (GCP).</summary>
 <p>
 
 В данном домашнем задании было сделано:

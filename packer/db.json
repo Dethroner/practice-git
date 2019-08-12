@@ -1,0 +1,21 @@
+{
+   "builders": [
+        {
+			"type": "googlecompute",
+			"project_id": "west-249106",
+			"image_name": "reddit-base-db",
+			"source_image": "ubuntu-1604-xenial-v20190628",
+			"zone": "europe-west1-b",
+			"communicator": "ssh",
+			"ssh_username": "appuser",
+			"machine_type": "f1-micro"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "script": "scripts/install_mongodb.sh",
+            "execute_command": "sudo {{.Path}}"
+        }
+    ]
+}
