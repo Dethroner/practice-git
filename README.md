@@ -811,7 +811,7 @@ terraform {
 </p>
 </details>
 
-<details><summary>08. </summary>
+<details><summary>08. Управление конфигурацией. Основные DevOps инструменты. Знакомство с Ansible.</summary>
 <p>
 
 ## Ansible:
@@ -821,6 +821,77 @@ terraform {
 Конфигурация Ansible
 Написание простого плейбука
 Создание динамического инвентори в формате JSON
+
+### Установка Ansible
+Для начала необходимо установить python 2.7
+
+```shell
+sudo apt update
+sudo apt install python
+```
+
+Ansible можно устатновить через пакетный менеджер ОС (apt) или пакетный менеджер питона (pip)
+[Официальный мануал по установке](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
+
+#### Установка через apt
+```shell
+$ sudo apt update
+$ sudo apt install software-properties-common
+$ sudo apt-add-repository --yes --update ppa:ansible/ansible
+$ sudo apt install ansible
+```
+
+#### Установка через pip
+```shell
+sudo apt update
+sudo apt install python-pip
+pip install --user ansible
+```
+
+### Конфигурация Ansible
+Общие настройки для локального проека можно хранить в файле [ansible.cfg](ansible/ansible.cfg)
+
+[Документация по переменным](https://docs.ansible.com/ansible/devel/reference_appendices/config.html#ansible-configuration-settings)
+
+#### inventory файл
+Описание управляемых хостов хранится в inventory файле [документация по инвентори](https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html), в форматах .ini(ansible/inventory.ini), .yml(ansible/inventory.yml), .json(ansible/inventory.json) также есть возможность использовать JSON формат , из [динамического inventory файла](https://docs.ansible.com/ansible/2.8/dev_guide/developing_inventory.html).
+
+Для взаимодействия с управляемыми машинами используются [модули](https://docs.ansible.com/ansible/2.8/modules/modules_by_category.html).
+
+Для работы ansible, необходимо создать inventory файл, в котором будут указаны хосты, которыми будет управлять ансибл. Для того, что бы у каждого хоста не указывать пользователя, под которым подключается ансибл и ключ, занесем эту информацию в файл ansible.cfg в директории ansible. Это локальный файл конфигурации:
+
+```
+[defaults]
+inventory = ./inventory
+remote_user = appuser
+private_key_file = ~/.ssh/appuser
+host_key_checking = False
+retry_files_enabled = False
+```
+### Написание простого плейбука
+После создания инвентори файла, напишем простой плейбук для клонирования репозитория на машину app и назовем его clone.yml.
+```
+    ---
+    - name: Clone
+      hosts: appservers
+      tasks:
+      - name: Clone repo
+        git:
+          repo: https://github.com/express42/reddit.git
+          dest: /opt/reddit
+          force: yes
+```
+Для выполнения плейбука выполним команду:
+```shell
+ansible-playbook clone.yml
+```
+Если на сервере уже был склонирован репозиторий в папку `~/reddit`, то статус выполнения таски `clone repo` будет `ok`. Но, если репозитория там не будет, или мы к прмеру удалим его командой
+```shell
+ansible app -m command -a 'rm -rf ~/reddit'
+```
+а потом повторно выполним плейбук, то статус таски `clone repo` будет `changed`. Это означает, что ансибл выполнил данную задачу и она повлекла изменения на сервере. Т.е. Состояние сервера отличалось от описанного в плейбуке.
+
+### Создание динамического инвентори в формате JSON
 
 
 </p>
