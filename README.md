@@ -3,8 +3,9 @@
 <details><summary>01. Система контроля версий. Принципы работы с Git.</summary>
 <p>
 
-### Git:
+## Git:
 Знакомство с git [Инструкция](https://githowto.com/ru).
+
 Канал с видеоматериалами по [git](https://www.youtube.com/playlist?list=PLg5SS_4L6LYstwxTEOU05E0URTHnbtA0l).
 
 </p>
@@ -13,7 +14,7 @@
 <details><summary>02. Командные чаты и системы управления задачами.</summary> 
 <p>
 
-### ChatOps:
+## ChatOps:
 В данном домашнем задании было сделано:
 - Добавлен функционал использования Pull Request Template
 - Интеграция Slack с github
@@ -352,7 +353,7 @@ gcloud compute instances create reddit-app \
 
 <details><summary>05. Работа с образами ОС.</summary>
 <p>
-
+## Packer
 В данном домашнем задании было сделано:
 - Установка packer
 - Предоставление доступа к GCP через ADC
@@ -409,7 +410,7 @@ packer build -var-file=variables.json ubuntu16.json
 
 <details><summary>06. Практика IaС. Знакомство с Terraform.</summary>
 <p>
-
+## Terraform
 В данном домашнем задании будет сделано:
 - Установка terraform
 - Организация структуры проекта в terraform
@@ -715,9 +716,9 @@ terraform import google_compute_firewall.firewall_ssh default-allow-ssh
 
 #### Работа с модулями [Пример](https://github.com/Dethroner/practice-git/tree/master/terraform/examples/4):
 Модули позволяют разделять ресурсы и облегчают управление ими. Инфраструктура разбита на 3 модуля:
-- [app](terraform/modules/app) - web часть сервиса
-- [db](terraform/modules/db) - модуль для работы с базами данных
-- [vpc](terraform/modules/vpc) - модуль для управления доступом к проекту
+- [app](terraform/examples/4/modules/app) - web часть сервиса
+- [db](terraform/examples/4/modules/db) - модуль для работы с базами данных
+- [vpc](terraform/examples/4/modules/vpc) - модуль для управления доступом к проекту
 
 Вынесем БД на отдельный инстанс ВМ. Для этого, для начала создадим 2 разных образа с помощью packer: db.json и app.json.
 
