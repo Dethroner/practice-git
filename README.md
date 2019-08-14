@@ -700,7 +700,6 @@ disk_image = "reddit-base-1565159335"
 - Создание окружений stage и prod
 - Работа с реестром модулей
 - Хранение стейт-файлов в удаленном бекэнде (*)
-- Добавление provisioner в модули приложения (**)
 
 ### Импорт существующего правила firewall
 По заданию, мы должны создать правило для фаервола, разрешающее подключение по ssh. Но в GCP оно уже создано по умолчанию. Однако, что бы мы могли управлять этим правилось через terraform, его нужно описать в main.tf, после чего выполнить импорт, что бы терраформ знал, что такое правило уже существует в GCP
@@ -714,12 +713,91 @@ terraform import google_compute_firewall.firewall_ssh default-allow-ssh
       "google_compute_instance.reddit-db",
   ]"`
 
-#### Работа с модулями:
+#### Работа с модулями [Пример](https://github.com/Dethroner/practice-git/tree/master/terraform/examples/4):
 Модули позволяют разделять ресурсы и облегчают управление ими. Инфраструктура разбита на 3 модуля:
 - [app](terraform/modules/app) - web часть сервиса
 - [db](terraform/modules/db) - модуль для работы с базами данных
 - [vpc](terraform/modules/vpc) - модуль для управления доступом к проекту
 
+Вынесем БД на отдельный инстанс ВМ. Для этого, для начала создадим 2 разных образа с помощью packer: db.json и app.json.
+
+Далее разобьем файл main.tf на несколько конфигов, аналогично, как мы сделали с конфигурацией для packer. Создадим файлы app.tf с описанием приложения и db.tf с описанием базы. Так же, создадим файл vpc.tf, куда вынесем правило фаервола, которое применимо для всех инстансов (default-allow-ssh)
+
+Перед тем, как создавать образы, необходимо проверить, что в GCP создано правило default-allow-ssh. Если его нет (возможно мы применили terraform destroy), то необходимо его создать, либо вручную, либо с помощью терраформа:
+```shell
+terraform apply -target=google_compute_firewall.firewall_ssh
+```
+После того, как разобьем файлы на несколько конфигов, сделаем сначала 2 новых образа:
+```shell
+packer build app.json
+packer build db.json
+```
+### Создание модулей
+Перед тем, как создавать модули, уничтожим текущую инфраструктуру:
+```shell
+terraform destroy
+```
+В дирректории terraform создадим папку modules. Создадим модуль для базы данных и для приложения.
+#### Модуль для базы
+Создадим папку db внутри папки modules. Внутри создадим 3 файла: main.tf, variables.tf и outputs.tf. В файл main.tf скопируем содержимое ранее созданного файла db.tf. В файле variables.tf опишем используемые переменные для модуля с базой: `public_key_path`, `zone` и `db_disk_image`
+
+#### Модель для приложения
+По аналогии с базой, создадим папку app внутри директории modules с 3-мя файлами main.tf, variables.tf и outputs.tf. В файл main.tf скопируем содержимое из файла app.tf. В файле variables.tf опишем используемые переменные для приложения: `public_key_path`, `zone`, `app_disk_image` и `instance_count`
+
+#### Использование модулей
+Перед тем, как использовать модули, необходимо удалить из папки terraform ранее созданные файлы db.tf и app.tf [Пример](https://github.com/Dethroner/practice-git/tree/master/terraform/examples/3), а в файле main.tf прописать использование модулей:
+```
+module "app" {
+  source = "modules/app"
+  public_key_path = "${var.public_key_path}"
+  zone = "${var.zone}"
+  app_disk_image = "${var.app_disk_image}"
+  instance_count = "${var.instance_count}"
+}
+
+module "db" {
+  source = "modules/db"
+  public_key_path = "${var.public_key_path}"
+  zone = "${var.zone}"
+  db_disk_image = "${var.db_disk_image}"
+}
+```
+#### Модуль vpc
+Аналогичным образом сделаем модуль для vpc. Создадим файл main.tf в папке vpc внутри папки modules. Создавать файлы outputs.tf и variables.tf пока нет необходимости, т.к. мы не получаем никаких входных и выходных данных. Добавим так же использование этого модуля в основной main.tf
+
+### Параметризация модуля vpc
+Для параметризации модуля vpc вынесем директиву source_ranges в отдельную переменную. После этого, мы сможем указывать source_ranges для ssh как параметр к модулю
+
+### Создание окружений stage и prod
+[Пример](https://github.com/Dethroner/practice-git/tree/master/terraform/examples/5)
+Для создания разных окружений, создадим папки stage и prod внутри папки terraform, скопируем в них файлы main.tf, variables.tf, outputs.tf, а так же terraform.tfvars и terraform.tfvars.example
+
+В файлах main.tf поменяем пути к модулям. Так же вынесем значение переменной source_ranges в terraform.tfvars, и для stage зададим `0.0.0.0/0` а для prod свой ip-адрес.
+Удалим файлы main.tf, variables.tf, outputs.tf и terraform.tfvars из корневой папки terraform, т.к. они больше не нужны.
+
+### Работа с реестром модулей
+Модули можно брать из [реестра терраформа](https://registry.terraform.io/).
+Воспользуемся модулем [storage-bucket](https://registry.terraform.io/modules/SweetOps/storage-bucket/google/0.2.0) для создания бакетов в GCP. 
+
+### Хранение стейт-файлов в удаленном бекэнде (*) 
+
+С помощью конфигурации storage-bucket создадим 2 бакета для stage (gsutil mb gs://dethroner-terraform-stage/) и prod (gsutil mb gs://dethroner-terraform-prod/)
+Создадим файлы backend.tf для stage и prod, где опишем конфигурации бекэндов [Пример](https://github.com/Dethroner/practice-git/tree/master/terraform/examples/6):
+
+```
+#stage terraform backend
+terraform {
+  backend "gcs" {
+    bucket = "dethroner-terraform-stage"
+    prefix = "reddit-stage"
+  }
+}
+
+```
+Командой `terraform init` инициализзируем бекенды и проверим, что файлы tfstate перенеслись в бакеты.
+
+Теперь, если перенести конфигурацию с настроенным бекэндом в любое другое место, террафоорм будет искать бекэнд в бакетах гугла.
+При запуске терраформа (`terraform apply`) в бакете создается файл блокировки `.tflock`. Этот файл существует, пока идет применение конфигурации, после чего удаляется. Если запустить одновременно 2 применения одной и той же конфигурации, то та, что была запущена позжеж упадет с ошибок о том, что состояние заблокировано.
 
 </p>
 </details>
