@@ -60,6 +60,10 @@ git push https://github.com/Dethroner/practice-git
 Username for 'https://github.com': Dethroner
 Password for 'https://Dethroner@github.com':
 ```
+#### 4. Если репозиторий ведут несколько человек или с разных устройств, перед началом изменений нужно запросить крайнюю версию репозитория:
+```
+git pull https://github.com/Dethroner/practice-git
+```
  
 </p>
 </details>
