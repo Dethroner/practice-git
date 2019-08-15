@@ -884,28 +884,21 @@ terraform {
 Для начала необходимо установить python 2.7
 
 ```shell
-sudo apt update
-sudo apt install python
-```
-
-Ansible можно устатновить через пакетный менеджер ОС (apt) или пакетный менеджер питона (pip)
-[Официальный мануал по установке](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
-
-#### Установка через apt
-```shell
 $ sudo apt update
-$ sudo apt install software-properties-common
-$ sudo apt-add-repository --yes --update ppa:ansible/ansible
+$ sudo apt install python dirmngr
+```
+#### Установка через apt
+
+1. Добавить в /etc/apt/sources.list
+```
+deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main
+```
+2. Установка
+```shell
+$ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367
+$ sudo apt update
 $ sudo apt install ansible
 ```
-
-#### Установка через pip
-```shell
-sudo apt update
-sudo apt install python-pip
-pip install --user ansible
-```
-
 ### Конфигурация Ansible
 Общие настройки для локального проека можно хранить в файле [ansible.cfg](ansible/ansible.cfg)
 
