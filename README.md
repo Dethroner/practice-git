@@ -22,6 +22,8 @@ make prefix=/usr/local install
 ```
 git config --global user.name "Your Name"
 git config --global user.email "your_email@whatever.com"
+git config --global core.editor nano
+git config --global merge.tool vimdiff
 git config --global core.autocrlf input
 git config --global core.safecrlf true
 git config --global core.quotepath off
@@ -33,11 +35,32 @@ git config --global user.email "your_email@whatever.com"
 git config --global core.autocrlf true
 git config --global core.safecrlf false
 ```
-### 3. Клонирую свой репозиторий:
+Просмотреть настройки:
+```
+git config --list
+```
+### 3. Рабт с Git:
+#### 1. Клонирую свой репозиторий (создан ранее через сайт) в домашний каталог:
 ```
 git clone https://github.com/Dethroner/practice-git
 ```
-
+#### 2. Перехожу в склонированную папку и инициализирую репозиторий:
+```
+cd ./practice-git
+git init
+```
+#### 3. Копирую файл LICENSE (MIT Licence) в папку и добавляю под версионный контроль:
+```
+git add .
+git commit -m 'Add LICENSE'
+git push https://github.com/Dethroner/practice-git
+```
+запросит данные для подключения ввожу имя и пароль:
+```
+Username for 'https://github.com': Dethroner
+Password for 'https://Dethroner@github.com':
+```
+ 
 </p>
 </details>
 
