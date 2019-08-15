@@ -33,6 +33,10 @@ git config --global user.email "your_email@whatever.com"
 git config --global core.autocrlf true
 git config --global core.safecrlf false
 ```
+### 3. Клонирую свой репозиторий:
+```
+git clone https://github.com/Dethroner/practice-git
+```
 
 </p>
 </details>
