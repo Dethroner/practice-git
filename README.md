@@ -8,6 +8,31 @@
 Знакомство с git [Инструкция](https://githowto.com/ru).
 
 Канал с видеоматериалами по [git](https://www.youtube.com/playlist?list=PLg5SS_4L6LYstwxTEOU05E0URTHnbtA0l).
+### 1. Установка в Debian из исходников:
+```shell
+cd /usr/src
+apt install libcurl4-gnutls-dev libexpat1-dev gettext libz-dev libssl-dev make binutils gcc
+wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.9.5.tar.gz
+tar -zxf git-2.9.5.tar.gz
+cd git-2.9.5
+make prefix=/usr/local all
+make prefix=/usr/local install
+```
+### 2. Первые шаги после установки в Linux:
+```
+git config --global user.name "Your Name"
+git config --global user.email "your_email@whatever.com"
+git config --global core.autocrlf input
+git config --global core.safecrlf true
+git config --global core.quotepath off
+```
+и в Windows:
+```
+git config --global user.name "Your Name"
+git config --global user.email "your_email@whatever.com"
+git config --global core.autocrlf true
+git config --global core.safecrlf false
+```
 
 </p>
 </details>
