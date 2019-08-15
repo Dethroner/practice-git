@@ -41,7 +41,7 @@ git config --list
 ```
 ### 3. Небольшой [тюнинг](https://natenka.gitbook.io/pyneng/part_i/02_git_github/git_basics/git_basics_bash_status) для Linux, отображает статуса репозитория в приглашении.
 
-### 4. Рабт с Git:
+### 4. Работа с Git:
 #### 1. Клонирую свой репозиторий (создан ранее через сайт) в домашний каталог:
 ```
 git clone https://github.com/Dethroner/practice-git
