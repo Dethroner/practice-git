@@ -65,7 +65,6 @@ Password for 'https://Dethroner@github.com':
 #### 4. Если репозиторий ведут несколько человек или с разных устройств, перед началом изменений нужно запросить крайнюю версию репозитория:
 ```
 git pull https://github.com/Dethroner/practice-git
-git add .
 ```
  
 </p>
