@@ -1,0 +1,9 @@
+---
+- name: Clone
+  hosts: appservers
+  tasks:
+  - name: Clone repo
+    git:
+      repo: https://github.com/express42/reddit.git
+      dest: /opt/reddit
+      force: yes

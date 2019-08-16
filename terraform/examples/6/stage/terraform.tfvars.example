@@ -1,0 +1,10 @@
+project = "Your project id"
+public_key_path = "~/.ssh/appuser.pub"
+privat_key_path = "~/.ssh/appuser"
+app_disk_image = "reddit-app-base"
+db_disk_image = "reddit-db-base"
+region = "europe-west1"
+zone = "europe-west1-b"
+instance_count = "1"
+source_ranges = ["0.0.0.0/0"]
+owner = "e-mail"

@@ -1,0 +1,6 @@
+{
+    "var_source_image_family": "ubuntu-1604-lts",
+    "var_machine_type": "f1-micro",
+    "var_project_id": "my_repo",
+    "var_image_description": "Awesome description"
+}
