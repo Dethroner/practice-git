@@ -878,7 +878,6 @@ terraform {
 Установка Ansible
 Конфигурация Ansible
 Написание простого плейбука
-Создание динамического инвентори в формате JSON
 
 ### Установка Ansible
 Для начала необходимо установить python 2.7
@@ -919,31 +918,36 @@ private_key_file = ~/.ssh/appuser
 host_key_checking = False
 retry_files_enabled = False
 ```
+## Terraform создает тестовую инфраструктуру состоящую из master-сервера (ansible) и двух нод на Debian (deb) и RedHat (rh).
+
+1. После поднятия инфраструктуры подключаемся к ansible:
+```shell
+ssh -i ~/.ssh/appuser appuser@<ip_ansible>
+```
+2. Перехожу в папку с ansible и впиcываю в inventory под группой MAIN ip-адреса нод.
+```
+cd /home/appuser/ansible
+nano ./inventory
+```
+3. Проверяю соединение:
+```
+ansible all -m ping
+```
 ### Написание простого плейбука
-После создания инвентори файла, напишем простой плейбук для клонирования репозитория на машину app и назовем его [clone.yml](ansible/examples/1/clone.yml) .
+Написал простой плейбук [test.yml](ansible/examples/1/test.yml) .
 ```
-    ---
-    - name: Clone
-      hosts: appservers
-      tasks:
-      - name: Clone repo
-        git:
-          repo: https://github.com/express42/reddit.git
-          dest: /opt/reddit
-          force: yes
-```
-Для выполнения плейбука выполним команду:
-```shell
-ansible-playbook clone.yml
-```
-Если на сервере уже был склонирован репозиторий в папку `~/reddit`, то статус выполнения таски `clone repo` будет `ok`. Но, если репозитория там не будет, или мы к прмеру удалим его командой
-```shell
-ansible app -m command -a 'rm -rf ~/reddit'
-```
-а потом повторно выполним плейбук, то статус таски `clone repo` будет `changed`. Это означает, что ансибл выполнил данную задачу и она повлекла изменения на сервере. Т.е. Состояние сервера отличалось от описанного в плейбуке.
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: test connection
+      ping:
 
-### Создание динамического инвентори в формате JSON
-
+```
+Для выполнения плейбука выполняю команду:
+```shell
+ansible-playbook ./examples/1/test.yml
+```
 
 </p>
 </details>
