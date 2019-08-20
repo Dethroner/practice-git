@@ -1,0 +1,62 @@
+---
+- name: Install Apache & Upload Site
+  hosts: all
+  become: yes
+
+  vars:
+   source_folder: ./website
+   destin_folder: /var/www/html
+
+  tasks:
+    block:
+    - name: Install Apache for RedHat
+      yum:
+        name: httpd
+        state: latest
+    - name: Start Apache for RedHat
+      service:
+        name: httpd
+        state: started
+        enablead: yes
+    when: ansible_os_family == "RedHat"
+
+    block:
+    - name: Install Apache for Debian
+      apt:
+        name: apache2
+        state: latest
+    - name: Start Apache for Debian
+      service:
+        name:apache2
+        state: started
+        enablead: yes
+    when: ansible_os_family=="Debian"
+
+
+    - name: Copy site
+      copy:
+       src: {{source_folder}}/{{item}}
+       dest: {{destin_folder}}
+       mode: 0555
+      loop:
+       - "index.html"
+       - "bahamas.png"
+       - "bssr.png"
+       - "bulgaria.png"
+       - "ussr.png"
+      notify:
+       - Restart Apache RedHat
+       - Restart Apache Debian
+
+  handlers:
+    - name: Restart Apache RedHat
+      service:
+       name:httpd
+       state:restarted
+      when: ansible_os_family=="RedHat"
+
+    - name: Restart Apache Debian
+      service:
+       name:apache2
+       state:restarted
+      when: ansible_os_family=="Debian"

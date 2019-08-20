@@ -918,7 +918,9 @@ private_key_file = ~/.ssh/appuser
 host_key_checking = False
 retry_files_enabled = False
 ```
-## Terraform создает тестовую инфраструктуру состоящую из master-сервера (ansible) и двух нод на Debian (deb) и RedHat (rh).
+### Terraform создает тестовую инфраструктуру
+
+Тестовая инфраструктура состоит из master-сервера (ansible) и двух нод на Debian (deb) и RedHat (rh).
 
 1. После поднятия инфраструктуры подключаемся к ansible:
 ```shell
