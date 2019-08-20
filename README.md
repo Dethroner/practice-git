@@ -55,7 +55,7 @@ git init
 ```
 git add .
 git commit -m 'Add LICENSE'
-git push https://github.com/Dethroner/practice-git
+git push origin
 ```
 запросит данные для подключения ввожу имя и пароль:
 ```
@@ -64,7 +64,7 @@ Password for 'https://Dethroner@github.com':
 ```
 #### 4. Если репозиторий ведут несколько человек или с разных устройств, перед началом изменений нужно запросить крайнюю версию репозитория:
 ```
-git pull https://github.com/Dethroner/practice-git
+git pull origin
 ```
  
 </p>
