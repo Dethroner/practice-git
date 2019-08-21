@@ -922,7 +922,7 @@ retry_files_enabled = False
 
 Тестовая инфраструктура состоит из master-сервера (ansible) и двух нод на Debian (deb) и RedHat (rh).
 
-1. После поднятия инфраструктуры подключаемся к ansible:
+1. После поднятия инфраструктуры подключаюсь к ansible:
 ```shell
 ssh -i ~/.ssh/appuser appuser@<ip_ansible>
 ```
@@ -949,6 +949,11 @@ ansible all -m ping
 Для выполнения плейбука выполняю команду:
 ```shell
 ansible-playbook ./examples/1/test.yml
+```
+### Написал более сложный playbook
+Написал [playbook](ansible/examples/4/playbook.yml) который использует [шаблон](ansible/examples/4/deploy_apache_web/templates/index.j2) генерирующий index.html и ansible роль для разворачивания на RedHat и Debian мини вебсайта. Запускаю:
+```
+ansible-playbook ./examples/4/playbook.yml
 ```
 
 </p>

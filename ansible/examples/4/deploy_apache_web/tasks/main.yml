@@ -1,20 +1,19 @@
 ---
 # tasks file for deploy_apache_web
-
 - block:
-    - name: Install Apache for RedHat
-      yum: name=httpd state=latest
-    - name: Start Apache for RedHat
-      service: name=httpd state=started enablead=yes
+#   - name: Install Apache for RedHat
+   -  yum: name=httpd state=latest
+#   - name: Start Apache for RedHat
+   -  service: name=httpd state=started
   when: ansible_os_family == "RedHat"
 
 - block:
-    - name: Install Apache for Debian
-      apt:
-        name: apache2
-        state: latest
-    - name: Start Apache for Debian
-      service: name=apache2 state=started enablead= yes
+#   - name: Install Apache for Debian
+   -  apt:
+       name: apache2
+       state: latest
+#   - name: Start Apache for Debian
+   -  service: name=apache2 state=started
   when: ansible_os_family=="Debian"
 
 - name: Generate index.html
