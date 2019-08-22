@@ -1,2 +1,9 @@
-[MAIN]
+[PROD]
+deb ansible_host= owner=Dev
 
+[STAGE]
+rh ansible_host= owner=Ops
+
+[MAIN:children]
+PROD
+STAGE

@@ -926,7 +926,7 @@ retry_files_enabled = False
 ```shell
 ssh -i ~/.ssh/appuser appuser@<ip_ansible>
 ```
-2. Перехожу в папку с ansible и впиcываю в inventory под группой MAIN ip-адреса нод.
+2. Перехожу в папку с ansible и впиcываю в inventory после ansible_host= ip-адреса нод.
 ```
 cd /home/appuser/ansible
 nano ./inventory
@@ -955,6 +955,29 @@ ansible-playbook ./examples/1/test.yml
 ```
 ansible-playbook ./examples/4/playbook.yml
 ```
+### Использование внешних переменных
+Внес изменеия по сравнению с предыдущим примером в [playbook](ansible/examples/5/playbook.yml) добавив параметризацию.
+```
+---
+- hosts: "{{ hosts }}"
+  become: yes
+
+  roles:
+    - { role: deploy_apache_web, when: ansible_system == 'Linux' } 
+```
+Теперь при запуске playbook можно указав переменную запустить исполнени на определенной группе (all, PROD, STAGE) без постоянного изменения конфигурационного файла.
+
+Запуск осуществляется таким образом (вместо сокращенного ключа -e, можно вводить его полную версию --extra-var или --extra-vars:
+```
+ansible-playbook ./examples/5/playbook.yml -e "hosts=PROD"
+```
+Введенная команда развернет в группе PROD Apache и минисайт.
+
+Также можно передавать несколько параметров, переданные параметры будут иметь наивысший приоритет, например:
+```
+ansible-playbook ./examples/5/playbook.yml -e "hosts=STAGE owner=Test"
+```
+Помимо Введенная развворачивания в группе STAGE Apache и минисайта, будет также изменен владелец сервера c Ops на Test.
 
 </p>
 </details>
