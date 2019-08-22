@@ -956,7 +956,7 @@ ansible-playbook ./examples/1/test.yml
 ansible-playbook ./examples/4/playbook.yml
 ```
 ### Использование внешних переменных
-Внес изменеия по сравнению с предыдущим примером в [playbook](ansible/examples/5/playbook.yml) добавив параметризацию.
+Внес изменеия по сравнению с предыдущим примером в [playbook](ansible/examples/5/playbook.yml) добавив параметризацию ([тут](http://www.oznetnerd.com/ansible-extra-vars/) описано несколько более обширно).
 ```
 ---
 - hosts: "{{ hosts }}"

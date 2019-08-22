@@ -1,5 +1,5 @@
 ---
-- name: Install Apache & Upload Site
+- name: Install Apache & make Site
   hosts: all
   become: yes
 
@@ -8,55 +8,41 @@
    destin_folder: /var/www/html
 
   tasks:
-    block:
-    - name: Install Apache for RedHat
-      yum:
-        name: httpd
-        state: latest
-    - name: Start Apache for RedHat
-      service:
-        name: httpd
-        state: started
-        enablead: yes
+  - block:
+    - name: Install Apache on RedHat
+      yum: pkg=httpd state=latest
+    - name: Enable Apache on system reboot for RedHat
+      service: name=httpd state=started
     when: ansible_os_family == "RedHat"
 
-    block:
-    - name: Install Apache for Debian
-      apt:
-        name: apache2
-        state: latest
-    - name: Start Apache for Debian
-      service:
-        name:apache2
-        state: started
-        enablead: yes
+  - block:
+    - name: Install Apache on Debian
+      apt: pkg=apache2 state=latest
+    - name: Enable Apache on system reboot for Debian
+      service: name=apache2 state=started
     when: ansible_os_family=="Debian"
 
-
-    - name: Copy site
-      copy:
-       src: {{source_folder}}/{{item}}
-       dest: {{destin_folder}}
-       mode: 0555
-      loop:
-       - "index.html"
-       - "bahamas.png"
-       - "bssr.png"
-       - "bulgaria.png"
-       - "ussr.png"
-      notify:
-       - Restart Apache RedHat
-       - Restart Apache Debian
+  - name: Copy site
+    copy: src={{source_folder}}/{{item}}  dest={{destin_folder}} mode=0555
+    loop:
+      - "index.html"
+      - "bahamas.png"
+      - "bssr.png"
+      - "bulgaria.png"
+      - "ussr.png"
+    notify:
+      - Restart Apache RedHat
+      - Restart Apache Debian
 
   handlers:
-    - name: Restart Apache RedHat
-      service:
-       name:httpd
-       state:restarted
-      when: ansible_os_family=="RedHat"
+   - name: Restart Apache RedHat
+     service:
+       name: httpd
+       state: restarted
+     when: ansible_os_family=="RedHat"
 
-    - name: Restart Apache Debian
-      service:
-       name:apache2
-       state:restarted
-      when: ansible_os_family=="Debian"
+   - name: Restart Apache Debian
+     service:
+       name: apache2
+       state: restarted
+     when: ansible_os_family=="Debian" 

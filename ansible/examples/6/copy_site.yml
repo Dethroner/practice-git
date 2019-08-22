@@ -1,0 +1,12 @@
+---
+- name: Copy site
+  copy: src={{source_folder}}/{{item}}  dest={{destin_folder}} mode=0555
+  loop:
+    - "index.html"
+    - "bahamas.png"
+    - "bssr.png"
+    - "bulgaria.png"
+    - "ussr.png"
+  notify:
+    - Restart Apache RedHat
+    - Restart Apache Debian
