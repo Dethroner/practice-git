@@ -977,7 +977,7 @@ ansible-playbook ./examples/5/playbook.yml -e "hosts=PROD"
 ```
 ansible-playbook ./examples/5/playbook.yml -e "hosts=STAGE owner=Test"
 ```
-Помимо Введенная развворачивания в группе STAGE Apache и минисайта, будет также изменен владелец сервера c Ops на Test.
+Помимо развворачивания в группе STAGE Apache и минисайта, будет также изменен владелец сервера c Ops на Test.
 
 </p>
 </details>
