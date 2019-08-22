@@ -944,17 +944,59 @@ ansible all -m ping
   tasks:
     - name: test connection
       ping:
-
 ```
 Для выполнения плейбука выполняю команду:
 ```shell
 ansible-playbook ./examples/1/test.yml
 ```
 ### Написал более сложный playbook
-Написал [playbook](ansible/examples/4/playbook.yml) который использует [шаблон](ansible/examples/4/deploy_apache_web/templates/index.j2) генерирующий index.html и ansible роль для разворачивания на RedHat и Debian мини вебсайта. Запускаю:
+Написал [playbook](ansible/examples/2/playbook.yml) который разворачивает на RedHat и Debian Apache и копирует туда минивебсайта. Запускаю:
+```
+ansible-playbook ./examples/2/playbook.yml
+```
+### Использование шаблонов в ansible
+Написал [playbook](ansible/examples/3/playbook.yml) который использует [шаблон](ansible/examples/3/website/index.j2) генерирующий index.html для минивебсайта. Запускаю:
+```
+ansible-playbook ./examples/3/playbook.yml
+```
+### Создание ролей в ansible
+1. Генерирую роль deploy_apache_web:
+```
+ansible-galaxy init deploy_apache_web
+```
+создасться пустая роль deploy_apache_web вида:
+```shell
+./deploy_apache_web
+├── defaults
+│   └── main.yml
+├── files
+├── handlers
+│   └── main.yml
+├── meta
+│   └── main.yml
+├── README.md
+├── tasks
+│   └── main.yml
+├── templates
+├── tests
+│   ├── inventory
+│   └── test.yml
+└── vars
+    └── main.yml
+```
+2. Взяв за основу предыдущий [playbook](ansible/examples/3/playbook.yml) начинаю заполнять роль:
+
+- файлы *.png из website перенес => в директорию files;
+- файл шаблона (index.j2) из website перенес => в директорию templates;
+- далее разношу блоки из playbook.yml => в соответсвующие main.yml.
+
+По итогу получаю [пример](ansible/examples/4/).
+
+3. Запускаю и проверяю:
 ```
 ansible-playbook ./examples/4/playbook.yml
 ```
+
 ### Использование внешних переменных
 Внес изменеия по сравнению с предыдущим примером в [playbook](ansible/examples/5/playbook.yml) добавив параметризацию ([тут](http://www.oznetnerd.com/ansible-extra-vars/) описано несколько более обширно).
 ```
@@ -978,6 +1020,19 @@ ansible-playbook ./examples/5/playbook.yml -e "hosts=PROD"
 ansible-playbook ./examples/5/playbook.yml -e "hosts=STAGE owner=Test"
 ```
 Помимо развворачивания в группе STAGE Apache и минисайта, будет также изменен владелец сервера c Ops на Test.
+
+###  Использование include
+Для работы с include решил разделить задачи из [примера](ansible/examples/2/playbook.yml) на: 
+
+- [установку](ansible/examples/6/install_apache.yml) Apache;
+- [копирование](ansible/examples/6/copy_site.yml) минисайта.
+
+И в [playbook](ansible/examples/6/playbook.yml) загрузить задачи через include.
+
+Запуск и проверка:
+```
+ansible-playbook ./examples/6/playbook.yml
+```
 
 </p>
 </details>
