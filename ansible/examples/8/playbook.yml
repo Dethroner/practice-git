@@ -1,0 +1,17 @@
+---
+- hosts: all
+# any_errors_fatal: yes                                     # Any error to stop running all playbook's tasks
+  become: yes
+  tasks:
+    - name: Install treee
+      yum: name=treee state=latest
+      ignore_errors: yes                                    # Error not block running "View /tmp" on node
+      
+    - name: View /tmp
+      shell: ls -la /tmp
+      register: data                                        # Record the status of the task in 'data'
+#      failed_when: "'word' in data.stdout"                 # Filter of error
+      
+  - debug:                                                  # View 'data' on screen ansible
+      var: data
+      

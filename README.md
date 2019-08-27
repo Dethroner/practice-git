@@ -876,8 +876,15 @@ terraform {
 
 В данном домашнем задании будет сделано:
 Установка Ansible
+Terraform создает тестовую инфраструктуру
 Конфигурация Ansible
 Написание простого плейбука
+Написание более сложный playbook
+Использование шаблонов в ansible
+Создание ролей в ansible
+Использование внешних переменных
+Использование include
+Использование ansible vault
 
 ### Установка Ansible
 Для начала необходимо установить python 2.7
@@ -898,6 +905,23 @@ $ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 93C4A3FD7BB9C367
 $ sudo apt update
 $ sudo apt install ansible
 ```
+### Terraform создает тестовую инфраструктуру
+
+[Тестовая инфраструктура](terraform\examples\7\) состоит из master-сервера (ansible) и двух нод на Debian (deb) и RedHat (rh).
+
+1. После поднятия инфраструктуры подключаюсь к ansible:
+```shell
+ssh -i ~/.ssh/appuser appuser@<ip_ansible>
+```
+2. Перехожу в папку с ansible и впиcываю в inventory после ansible_host= ip-адреса нод.
+```
+cd /home/appuser/ansible
+nano ./inventory
+```
+3. Проверяю соединение:
+```
+ansible all -m ping
+```
 ### Конфигурация Ansible
 Общие настройки для локального проека можно хранить в файле [ansible.cfg](ansible/ansible.cfg)
 
@@ -913,29 +937,10 @@ $ sudo apt install ansible
 ```
 [defaults]
 inventory = ./inventory
-remote_user = appuser
-private_key_file = ~/.ssh/appuser
 host_key_checking = False
 retry_files_enabled = False
 ```
-### Terraform создает тестовую инфраструктуру
-
-Тестовая инфраструктура состоит из master-сервера (ansible) и двух нод на Debian (deb) и RedHat (rh).
-
-1. После поднятия инфраструктуры подключаюсь к ansible:
-```shell
-ssh -i ~/.ssh/appuser appuser@<ip_ansible>
-```
-2. Перехожу в папку с ansible и впиcываю в inventory после ansible_host= ip-адреса нод.
-```
-cd /home/appuser/ansible
-nano ./inventory
-```
-3. Проверяю соединение:
-```
-ansible all -m ping
-```
-### Написание простого плейбука
+#### Написание простого плейбука
 Написал простой плейбук [test.yml](ansible/examples/1/test.yml) .
 ```
 ---
@@ -949,17 +954,17 @@ ansible all -m ping
 ```shell
 ansible-playbook ./examples/1/test.yml
 ```
-### Написал более сложный playbook
+#### Написание более сложный playbook
 Написал [playbook](ansible/examples/2/playbook.yml) который разворачивает на RedHat и Debian Apache и копирует туда минивебсайта. Запускаю:
 ```
 ansible-playbook ./examples/2/playbook.yml
 ```
-### Использование шаблонов в ansible
+#### Использование шаблонов в ansible
 Написал [playbook](ansible/examples/3/playbook.yml) который использует [шаблон](ansible/examples/3/website/index.j2) генерирующий index.html для минивебсайта. Запускаю:
 ```
 ansible-playbook ./examples/3/playbook.yml
 ```
-### Создание ролей в ansible
+#### Создание ролей в ansible
 1. Генерирую роль deploy_apache_web:
 ```
 ansible-galaxy init deploy_apache_web
@@ -997,7 +1002,7 @@ ansible-galaxy init deploy_apache_web
 ansible-playbook ./examples/4/playbook.yml
 ```
 
-### Использование внешних переменных
+#### Использование внешних переменных
 Внес изменеия по сравнению с предыдущим примером в [playbook](ansible/examples/5/playbook.yml) добавив параметризацию ([тут](http://www.oznetnerd.com/ansible-extra-vars/) описано несколько более обширно).
 ```
 ---
@@ -1021,8 +1026,8 @@ ansible-playbook ./examples/5/playbook.yml -e "hosts=STAGE owner=Test"
 ```
 Помимо развворачивания в группе STAGE Apache и минисайта, будет также изменен владелец сервера c Ops на Test.
 
-###  Использование include
-Для работы с include решил разделить задачи из [примера](ansible/examples/2/playbook.yml) на: 
+####  Использование include
+Для работы с include решил разделить задачи из [примера](ansible/examples/2) на: 
 
 - [установку](ansible/examples/6/install_apache.yml) Apache;
 - [копирование](ansible/examples/6/copy_site.yml) минисайта.
@@ -1033,6 +1038,109 @@ ansible-playbook ./examples/5/playbook.yml -e "hosts=STAGE owner=Test"
 ```
 ansible-playbook ./examples/6/playbook.yml
 ```
+#### Использование ansible vault
+Начиная с версии 1.5 в Ansible была доабвлена возможность хранения секретных данных, таких как пароли или RSA ключи, в зашифрованных файлах — vault («хранилище»).
+
+<b>!!! Важно!!!</b> В пределах одного playbook все шифруемые переменные лучше кодировать <i>одним паролем</i>.
+##### Шифрование файлов
+1. Создания хранилища с запросом пароля:
+```
+ansible-vault create file.yml
+```
+2. Зашифровать уже имеющий файл:
+```
+ansible-vault encrypt file.yml
+```
+3. Расшифровать файл:
+```
+ansible-vault decrypt file.yml
+```
+4. Редактировать файл, по умолчанию (vi):
+```
+ansible-vault edit file.yml
+```
+Файл расшифровывается во временный файл, открывается для редактирования, после завершения — снова шифруется и сохраняется в старом месте.
+
+5. Просмотр файла:
+```
+ansible-vault view file.yml
+```
+6. Смена пароля:
+```
+ansible-vault rekey file.yml
+```
+Можно применять к нескольким файлам сразу, если они зашифрованы одним ключём (паролем).
+##### Шифрование переменных
+1. Шифрование переменной через конструктор:
+```
+ansible-vault encrypt_string
+```
+После задания пароля будет вводим шифруеые данные, по окончании ввода жмем два раза Ctrl+d для получения зашифрованного контента. Т.е. видим что-то типа:
+```
+New Vault password:
+Confirm New Vault password:
+Reading plaintext input from stdin. (ctrl-d to end input)
+This is Text String
+!vault |
+ANSIBLE_VAULT;1.1;AES256
+38363965343563353962666264646337613464663263663632626264373563633430323633356639
+3737333233393662336533376661333163653035333334370a373565343330633537363563656430
+37363632636664353864353532633030326231356238643634623033396539656164666437343565
+3964653033343136620a356438316635663561313665323739353766383233656261646538616165
+66313237633635646265653633323635333861636539313937343363666539366465
+Encryption successful
+```
+2. Шифрование переменной одной строкой:
+```
+echo -n "secretword" | ansible-vault encrypt_string
+```
+3. Использование шифрованных перемеых
+
+Далее это может использоваться в переменной.
+
+Например: добавить новый файл vars/strings.yml с переменной encrypted_data_string:
+```
+---
+encrypted_data_string: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          38363965343563353962666264646337613464663263663632626264373563633430323633356639
+          3737333233393662336533376661333163653035333334370a373565343330633537363563656430
+          37363632636664353864353532633030326231356238643634623033396539656164666437343565
+          3964653033343136620a356438316635663561313665323739353766383233656261646538616165
+          66313237633635646265653633323635333861636539313937343363666539366465
+```
+
+##### Использование зашифрованных данных в playbook
+1. Запустить выполнение зашифровнного playbook:
+```
+ansible-playbook playbook.yml --ask-vault-pass
+```
+Перед выполнением спросит пароль для шифтрованного контента.
+
+2. Пароль ля шифтрованного контента можно сохранить в файл и запускать исползуя его вместо ввода пароля:
+```
+ansible-playbook playbook.yml --vault-password-file pass.txt 
+```
+3. В Ansible 2.4 и выше вместо --ask-vault-pass и --vault-password-file можно использовать --vault-id, который позволяет использовать разные пароли для разных файлов.
+```
+ansible-playbook playbook.yml --vault-id pass1.txt --vault-id pass2.txt
+```
+
+</p>
+</details>
+
+<details><summary>09. Локальная разработка с Vagrant.</summary>
+<p>
+
+## Vagrant:
+
+В данном домашнем задании будет сделано:
+Установка Vagrant
+Конфигурация Vagrantfile
+
+### Установка Vagrant
+
+
 
 </p>
 </details>

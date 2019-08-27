@@ -1,0 +1,21 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Run once and logging
+      shell: echo Server {{ inventory_hostname }} name node {{ ansible_nodname }} >> /home/log.txt
+      run_once: true
+      
+    - name: Reboot servers
+      shell: sleep 3 && reboot now
+      async: 1
+      poll: 0
+      
+    - name: Wait untill servers Up
+      wait_for:
+          host: "{{  inventory_hostname }}"
+          state: started
+          delay: 5
+          timeout: 40
+      delegate_to: 127.0.0.1    
+

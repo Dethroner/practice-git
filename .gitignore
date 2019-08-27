@@ -4,3 +4,7 @@
 *.tfstate.backup
 *.tfvars
 
+.vagrant/
+*.box
+*.logs
+.sshkey/

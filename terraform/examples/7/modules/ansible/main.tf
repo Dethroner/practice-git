@@ -44,7 +44,7 @@ resource "google_compute_instance" "ansible" {
   }
   
   provisioner "file" {
-    source      = "../ansible"
+    source      = "../../../ansible"
     destination = "/home/appuser"
   }
  
