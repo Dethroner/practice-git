@@ -1125,7 +1125,6 @@ ansible-playbook playbook.yml --vault-password-file pass.txt
 ```
 ansible-playbook playbook.yml --vault-id pass1.txt --vault-id pass2.txt
 ```
-
 </p>
 </details>
 
@@ -1154,7 +1153,7 @@ vagrant -v
 
 1. Создаю инфраструктуру, которую создавал до этого в GCE при помощи Terraform, на локальной машине, используя Vagrant. !!!Чтобы написаная конфигурация работала необходимо произвести предварительные [настройки](https://github.com/Dethroner/test/blob/master/README).
 
-2. Перехожу в [инфраструктуру](vagrant/examples/1) инициализирую Vagrant и разворачиваю инфраструктуру:
+2. Перехожу в [инфраструктуру](vagrant/examples/1) инициализирую Vagrant и разворачиваю:
 ```
 cd ./vagrant/examples/1
 vagrant init
@@ -1214,6 +1213,36 @@ vagrant status
 ```
 vagrant ssh hostname
 ```
+
+</p>
+</details>
+
+<details><summary>10. Технология контейнеризации; Введение в Docker</summary>
+<p>
+
+В данном домашнем задании будет сделано:<br>
+Установка Docker<br>
+
+## Docker:
+
+### Установка Docker
+
+1. [Инструкция](https://docs.docker.com/install/linux/docker-ce/debian/) по установке Docker.<br>
+2. Создаю [VM](vagrant/examples/2) Docker средствами Vagrant и разворачиваю:
+```
+cd ./vagrant/examples/2
+vagrant init
+vagrant up
+```
+3. После поднятия инфраструктуры подключаюсь:
+```
+ssh -i ~/.ssh/appuser appuser@10.50.10.10
+```
+4. Проверяю:
+```
+docker -v
+```
+
 
 </p>
 </details>
