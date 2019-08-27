@@ -1134,9 +1134,9 @@ ansible-playbook playbook.yml --vault-id pass1.txt --vault-id pass2.txt
 
 ## Vagrant:
 
-В данном домашнем задании будет сделано:
-Установка Vagrant
-Конфигурация Vagrantfile
+В данном домашнем задании будет сделано:<br>
+Установка Vagrant<br>
+Конфигурация Vagrantfile<br>
 Некоторые команды Vagrant
 
 ### Установка Vagrant
