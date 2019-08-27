@@ -1137,10 +1137,83 @@ ansible-playbook playbook.yml --vault-id pass1.txt --vault-id pass2.txt
 В данном домашнем задании будет сделано:
 Установка Vagrant
 Конфигурация Vagrantfile
+Некоторые команды Vagrant
 
 ### Установка Vagrant
 
+1. Необходимо установить [VirtualBox](https://www.virtualbox.org/wiki/Downloads) и [расширение](https://download.virtualbox.org/virtualbox/6.0.10/Oracle_VM_VirtualBox_Extension_Pack-6.0.10.vbox-extpack). VritualBox - один из провайдеров, которым Vagrant 
+может управлять для создания VMs. Он будет использован для локального запуска VM.
 
+2. Установить [Vagrant](https://www.vagrantup.com/downloads.html). Проверить установку можно:
+```
+vagrant -v
+```
+### Конфигурация Vagrantfile
+
+Описание характеристик VMs, которые мы хотим создать, должно содержаться в файле с названием [Vagrantﬁle](vagrant/Vagrantfile.example).
+
+1. Создаю инфраструктуру, которую создавал до этого в GCE при помощи Terraform, на локальной машине, используя Vagrant. !!!Чтобы написаная конфигурация работала необходимо произвести предварительные [настройки](https://github.com/Dethroner/test/blob/master/README).
+
+2. Перехожу в [инфраструктуру](vagrant/examples/1) инициализирую Vagrant и разворачиваю инфраструктуру:
+```
+cd ./vagrant/examples/1
+vagrant init
+vagrant up
+```
+3. После поднятия инфраструктуры подключаюсь к ansible:
+```shell
+ssh -i ~/.ssh/appuser appuser@10.50.10.10
+```
+4. Перехожу в папку с ansible правлю inventory. 
+```
+cd /home/appuser/ansible
+nano ./inventory
+```
+```
+[PROD]
+deb ansible_host=10.50.10.20. owner=Dev
+
+[STAGE]
+rh ansible_host=10.50.10.30 owner=Ops
+
+[MAIN:children]
+PROD
+STAGE 
+```
+!!!Пришлось переместить ansible.cfg заменив установленый в /etc/ansible, и переписать путь до inventory!!!
+
+5. Проверяю соединение:
+```
+ansible all -m ping
+```
+6. Проверяю работу предыдущего задания (в RedHat для Vagrant урезанны репозитории, не доступен httpd).
+
+### Некоторые команды Vagrant
+
+- Иниализировать проект:
+```
+vagrant init
+```
+- Развернуть инфраструктуру:
+```
+vagrant up
+```
+- Удалить инфраструктуру:
+```
+vagrant destroy
+```
+- Выключить инфраструктуру:
+```
+vagrant halt
+```
+- Просмотреть статус:
+```
+vagrant status
+```
+- Подключиться по внутреннему SSH:
+```
+vagrant ssh hostname
+```
 
 </p>
 </details>
