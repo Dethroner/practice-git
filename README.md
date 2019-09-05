@@ -1221,12 +1221,27 @@ vagrant ssh hostname
 <p>
 
 В данном домашнем задании будет сделано:<br>
+Введение в Docker<br>
 Установка Docker<br>
+Запуск Wordpress c mysql<br>
+Запуск Wordpress c mysql с использованием хостовых папок<br>
 
 ## Docker:
 
-### Установка Docker
+### Введение в Docker
+Инструмент для создания образов и развертывания из них контейнеров. Используется для поставки ПО. 
+Для изоляции процессов использует [namespaces](https://habr.com/ru/post/458462/).
+Для ограничения ограничения ресурсов [cgroups](https://habr.com/ru/company/selectel/blog/303190/)
 
+#### Dockerfile
+Файл содержащий инструкции для создания образа  
+[Документация](https://docs.docker.com/engine/reference/builder/)
+
+#### Docker-machine
+Инструмент для установки Docker engine на удалённом сервере и управления им.  
+[Документация](https://docs.docker.com/machine/overview/)
+
+### Установка Docker
 1. [Инструкция](https://docs.docker.com/install/linux/docker-ce/debian/) по установке Docker.<br>
 2. Создаю [VM](vagrant/examples/2) Docker средствами Vagrant и разворачиваю:
 ```
@@ -1243,6 +1258,44 @@ ssh -i ~/.ssh/appuser appuser@10.50.10.10
 docker -v
 ```
 
+### Запуск [Wordpress](docker/examples/1/README.md) c mysql
+1. Запускаю базу данных (mysql):
+```
+docker run -d --name=db -e MYSQL_ROOT_PASSWORD=password mysql
+```
+2. Запускаю Wordpress, подключаю его к бд:
+```
+docker run -d --name=wp --link=db -p 80:80 -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_PASSWORD=password wordpress
+```
+3. Проверяю, что получилось пройдя по ссылке в [браузере](http://10.50.10.10).
+
+### Запуск [Wordpress](docker/examples/2/README.md) c mysql с использованием хостовых папок
+1. Запускаю базу данных (mysql):
+```
+docker run -d --name=db -e MYSQL_ROOT_PASSWORD=password -v $(pwd)/db-mysql:/var/lib/mysql mysql
+```
+Просто монтирую папку db-mysql к /var/lib/mysql, и теперь mysql данные находятся в относительной безопасности хостовой файловой системы.<br>
+Если такой контейнер удалить, то с его данными ничего не случится.<br>
+Если запустить новый mysql, подключив папку к тому же пути (повторить команду), то новый контейнер продолжит с того же места, где остановился старый.
+
+2. Запускаю Wordpress, подключаю его к бд, так же подключаю хостовую папку где у меня лежит дополнительная тема:
+```
+docker run -d --name=wp --link=db -p 80:80 -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_PASSWORD=password wordpress
+```
+3. Проверяю, что получилось пройдя по ссылке в [браузере](http://10.50.10.10).
+
+4. Удаляю работающий контейнер с бд:
+```
+docker stop db
+docker rm db
+```
+5. Проверяю, что получилось пройдя по ссылке в [браузере](http://10.50.10.10). Сайт недоступен.
+
+6. Запускаю бд:
+```
+docker run -d --name=db -e MYSQL_ROOT_PASSWORD=password -v $(pwd)/db-mysql:/var/lib/mysql mysql
+```
+7. Проверяю, что получилось пройдя по ссылке в [браузере](http://10.50.10.10). Сайт работает как ни вчем не бывало.
 
 </p>
 </details>
