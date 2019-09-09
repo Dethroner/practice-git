@@ -1228,7 +1228,7 @@ vagrant ssh hostname
 - Запуск Wordpress c mysql<br>
 - Запуск Wordpress c mysql с использованием хостовых папок<br>
 
-### Введение в Docker
+### Введение в [Docker](docker/README.md)
 Инструмент для создания образов и развертывания из них контейнеров. Используется для поставки ПО. 
 Для изоляции процессов использует [namespaces](https://habr.com/ru/post/458462/).
 Для ограничения ограничения ресурсов [cgroups](https://habr.com/ru/company/selectel/blog/303190/)
@@ -1296,6 +1296,140 @@ docker rm db
 docker run -d --name=db -e MYSQL_ROOT_PASSWORD=password -v $(pwd)/db-mysql:/var/lib/mysql mysql
 ```
 7. Проверяю, что получилось пройдя по ссылке в [браузере](http://10.50.10.10). Сайт работает как ни вчем не бывало.
+
+### Запуск [Reddit](docker/examples/3) с созданием docker образов
+
+Приложение состоит из [трех](https://github.com/express42/reddit/archive/microservices.zip) компонент:
+- post-py - сервис отвечающий за написание постов;
+- comment - сервис отвечающий за написание комментариев;
+- ui - веб-интерфейс для других сервисов;
+- для работы ему требуется mongodb.
+
+1. Скачал последний образ mongod:
+```
+docker pull mongo:latest
+```
+2. Создаю Dockerﬁle образов и собираю их:
+- [./post-py/Dockerﬁle](docker/examples/3/post-py/Dockerﬁle)
+- [./comment/Dockerﬁle](docker/examples/3/comment/Dockerﬁle)
+- [./comment/Dockerﬁle](docker/examples/3/comment/Dockerﬁle)
+```
+docker build -t test/post:1.0 ./post-py
+docker build -t test/comment:1.0 ./comment
+docker build -t test/ui:1.0 ./ui
+```
+3. Создаю специальную сеть для объединения компонентов (чтобы не использовать --link=):
+```
+docker network create reddit
+```
+4. Запускаю контейнеры из созданных образов (данные бд положу в контейнер reddit_db): 
+```
+docker run -d --network=reddit -v reddit_db:/data/db --network-alias=post_db --network-alias=comment_db mongo:latest
+docker run -d --network=reddit --network-alias=post test/post:1.0
+docker run -d --network=reddit --network-alias=comment test/comment:1.0
+docker run -d --network=reddit -p 9292:9292 test/ui:1.0
+```
+5. Проверяю, что получилось пройдя по ссылке в [браузере](http://10.50.10.10:9292). Все работает.
+
+6. Останавливаю контейнеры:
+```
+docker kill $(docker ps -q)
+```
+### Оптимизация создаваемых образов
+
+1. Если проверить размеры образов, можно увидеть что они достаточно объемные:
+```
+docker images ls
+```
+```
+REPOSITORY          TAG                 IMAGE ID            CREATED              SIZE
+test/comment        1.0                 99dbbce0f6e7        25 minutes ago      773MB
+test/ui             1.0                 a0faa528a3df        23 minutes ago      778MB
+test/post           1.0                 28cc2313afa8        34 minutes ago      102MB
+```
+2. Как добиться уменьшения образов?
+
+Нужно помнить что:<br>
+- размер образа зависит на размер базового образа (к которому можно добавить нужные утилиты и пакеты);
+```
+ruby                2.2                 6c8e6f9667b2        16 months ago       715MB
+ubuntu              16.04               5e13f8dd4c1a        6 weeks ago         120MB
+ruby                2.4-alpine3.9       ea8b14b30914        11 days ago         54.4MB
+```
+- каждая команда в Dockerﬁle - это новый образ, а соответсвенно дополнительный размер к базовому образу;
+```
+ENV myvar true											<- image!
+RUN apt-get install -y nginx							<- image!
+RUN apt-get install -y php-fpm							<- image!
+RUN apt-get install -y imagemagick						<- image!
+ADD https://some-site.com/soft/master.tar.gz /bin/		<- image!
+CMD ["/bin/cool-soft"]									<- image!
+```
+можно к примеру уменьшить вот так:
+```
+ENV myvar true											<- image!
+RUN apt-get install -y nginx /							<- image!
+    apt-get install -y php-fpm /
+    apt-get install -y imagemagick
+ADD https://some-site.com/soft/master.tar.gz /bin/		<- image!
+CMD ["/bin/cool-soft"]									<- image!
+```
+- также важно удалять за собой архивы и временные файлы;
+```
+COPY <filename>.zip <copy_directory>					<- image!
+RUN unzip <filename>.zip								<- image!
+RUN rm <filename>.zip									<- image!
+```
+желательно это делать в одной команде иначе останутся наследуемые images с zip архивом:
+```
+RUN curl <file_download_url> -O <copy_directory> \                   <- image!
+    && unzip <copy_directory>/<filename>.zip -d <copy_directory> \
+    && rm <copy_directory>/<filename>.zip
+
+```
+3. Пересобираю образ заменив образ ruby:2.2 на ubuntu:16.04:
+```
+cp -R ./ui/2/Dockerfile ./ui
+docker build -t test/ui:2.0 ./ui
+```
+Убираю выполнямые контейнеры (docker kill $`docker ps`). Повторив пп.4-6 проверяю работу, с той лишь разницей, что запускаю новую версию:
+```
+docker run -d --network=reddit -p 9292:9292 test/ui:2.0
+```
+4. А если пересобрать все на базе alpine? Пробую:
+comment:
+```
+cp -R ./comment/2/Dockerfile ./comment/
+docker build -t test/comment:2.0 ./comment
+```
+ui:
+```
+cp -R ./ui/3/Dockerfile ./ui
+docker build -t test/ui:3.0 ./ui
+```
+Убираю выполнямые контейнеры (docker kill $`docker ps`). Повторив пп.4-6 проверяю работу, с той лишь разницей, что запускаю новую версию:
+```
+docker run -d --network=reddit --network-alias=comment test/comment:2.0
+docker run -d --network=reddit -p 9292:9292 test/ui:3.0
+```
+5. Проверяю все образы:
+```
+docker images ls
+```
+```
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE
+test/post           1.0                 28cc2313afa8        34 minutes ago      102MB
+test/ui             1.0                 a0faa528a3df        23 minutes ago      778MB
+test/ui             2.0                 7b1d2c287492        7 minutes ago       227MB
+test/ui             3.0                 b65e1d57ff83        19 minutes ago      72.4MB
+test/comment        1.0                 99dbbce0f6e7        25 minutes ago      773MB
+test/comment        2.0                 da2ca248f9b7        30 minutes ago      70.3MB
+mongo               latest              cdc6740b66a7        3 weeks ago         361MB
+ruby                2.2                 6c8e6f9667b2        16 months ago       715MB
+ruby                2.4-alpine3.9       ea8b14b30914        11 days ago         54.4MB
+python              3.6.0-alpine        cb178ebbf0f2        2 years ago         88.6MB
+ubuntu              16.04               5e13f8dd4c1a        6 weeks ago         120MB
+```
 
 </p>
 </details>
