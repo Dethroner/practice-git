@@ -1358,31 +1358,31 @@ ruby                2.4-alpine3.9       ea8b14b30914        11 days ago         
 ```
 - каждая команда в Dockerﬁle - это новый образ, а соответсвенно дополнительный размер к базовому образу;
 ```
-ENV myvar true											<- image!
-RUN apt-get install -y nginx							<- image!
-RUN apt-get install -y php-fpm							<- image!
-RUN apt-get install -y imagemagick						<- image!
-ADD https://some-site.com/soft/master.tar.gz /bin/		<- image!
-CMD ["/bin/cool-soft"]									<- image!
+ENV myvar true                                          <- image!
+RUN apt-get install -y nginx                            <- image!
+RUN apt-get install -y php-fpm                          <- image!
+RUN apt-get install -y imagemagick                      <- image!
+ADD https://some-site.com/soft/master.tar.gz /bin/      <- image!
+CMD ["/bin/cool-soft"]                                  <- image!
 ```
 можно к примеру уменьшить вот так:
 ```
-ENV myvar true											<- image!
-RUN apt-get install -y nginx /							<- image!
+ENV myvar true                                          <- image!
+RUN apt-get install -y nginx /                          <- image!
     apt-get install -y php-fpm /
     apt-get install -y imagemagick
-ADD https://some-site.com/soft/master.tar.gz /bin/		<- image!
-CMD ["/bin/cool-soft"]									<- image!
+ADD https://some-site.com/soft/master.tar.gz /bin/      <- image!
+CMD ["/bin/cool-soft"]                                  <- image!
 ```
 - также важно удалять за собой архивы и временные файлы;
 ```
-COPY <filename>.zip <copy_directory>					<- image!
-RUN unzip <filename>.zip								<- image!
-RUN rm <filename>.zip									<- image!
+COPY <filename>.zip <copy_directory>                    <- image!
+RUN unzip <filename>.zip                                <- image!
+RUN rm <filename>.zip                                   <- image!
 ```
 желательно это делать в одной команде иначе останутся наследуемые images с zip архивом:
 ```
-RUN curl <file_download_url> -O <copy_directory> \                   <- image!
+RUN curl <file_download_url> -O <copy_directory> \                  <- image!
     && unzip <copy_directory>/<filename>.zip -d <copy_directory> \
     && rm <copy_directory>/<filename>.zip
 
