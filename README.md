@@ -1392,7 +1392,7 @@ RUN curl <file_download_url> -O <copy_directory> \                  <- image!
 cp -R ./ui/2/Dockerfile ./ui
 docker build -t test/ui:2.0 ./ui
 ```
-Убираю выполнямые контейнеры (docker kill $`docker ps`). Повторив пп.4-6 проверяю работу, с той лишь разницей, что запускаю новую версию:
+Останавливаю контейнеры 'docker kill $(docker ps)'. Повторив пп.4-6 проверяю работу, с той лишь разницей, что запускаю новую версию:
 ```
 docker run -d --network=reddit -p 9292:9292 test/ui:2.0
 ```
@@ -1407,7 +1407,7 @@ ui:
 cp -R ./ui/3/Dockerfile ./ui
 docker build -t test/ui:3.0 ./ui
 ```
-Убираю выполнямые контейнеры (docker kill $`docker ps`). Повторив пп.4-6 проверяю работу, с той лишь разницей, что запускаю новую версию:
+Останавливаю контейнеры 'docker kill $(docker ps)'. Повторив пп.4-6 проверяю работу, с той лишь разницей, что запускаю новую версию:
 ```
 docker run -d --network=reddit --network-alias=comment test/comment:2.0
 docker run -d --network=reddit -p 9292:9292 test/ui:3.0
