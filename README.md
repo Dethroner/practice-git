@@ -1228,6 +1228,7 @@ vagrant ssh hostname
 - Запуск Wordpress c mysql<br>
 - Запуск Wordpress c mysql с использованием хостовых папок<br>
 - Оптимизация создаваемых образов<br>
+- Драйвера сети в Docker<br>
 - Работа с сетями<br>
 
 ### Введение в [Docker](docker/README.md)
@@ -1240,8 +1241,29 @@ vagrant ssh hostname
 [Документация](https://docs.docker.com/engine/reference/builder/)
 
 #### Docker-machine
+Docker-machine - это встроенный в докер механизм для создания хостов и установки на них docker engine (server).<br>
+Команда создания - docker-machine create <имя>. Имен может быть много, переключение между ними через eval $(docker-machine env <имя>). Переключение на локальный докер - eval $(docker-machine env --unset). Удаление - docker-machine rm <имя>. docker-machine создает хост для докер демона со указываемым образом в --googlemachine-image, в ДЗ используется ubuntu-16.04. Образы которые используются для построения докер контейнеров к этому никак не относятся. Все докер команды, которые запускаются в той же консоли после eval $(docker-machine env <имя>) работают с удаленным докер демоном в GCP.<br>
 Инструмент для установки Docker engine на удалённом сервере и управления им.  
-[Документация](https://docs.docker.com/machine/overview/)
+[Документация](https://docs.docker.com/machine/overview/)<br>
+
+Создание удаленного хоста с docker команду:
+```
+export GOOGLE_PROJECT=docker-248611
+docker-machine create --driver google \
+--google-machine-image https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts \
+--google-machine-type n1-standard-1 \
+--google-zone europe-west1-b \
+docker-host
+```
+Проверим, что наш хост успешно создан:
+```
+docker-machine ls
+```
+Переключимся на удаленный хост:
+```
+eval $(docker-machine env docker-host)
+```
+Теперь все дальнейшие команды docker будут выполняться на удаленном хосте.
 
 ### Установка Docker
 1. [Инструкция](https://docs.docker.com/install/linux/docker-ce/debian/) по установке Docker.<br>
@@ -1335,7 +1357,7 @@ docker run -d --network=reddit -p 9292:9292 test/ui:1.0
 
 6. Останавливаю контейнеры:
 ```
-docker kill $(docker ps -q)
+docker stop $(docker ps -q) && docker rm $(docker ps -q)
 ```
 ### Оптимизация создаваемых образов
 
@@ -1432,6 +1454,14 @@ ruby                2.4-alpine3.9       ea8b14b30914        11 days ago         
 python              3.6.0-alpine        cb178ebbf0f2        2 years ago         88.6MB
 ubuntu              16.04               5e13f8dd4c1a        6 weeks ago         120MB
 ```
+### Драйвера сети в Docker
+[bridge](https://docs.docker.com/network/bridge/) - мост между несколькими контейнерами. без явного указания, будет использоваться этот драйвер.
+[host](https://docs.docker.com/network/host/) - подключение к сети, машины, на которой запущен контейнер
+[overlay](https://docs.docker.com/network/overlay/) - для соединения docker демонов запущенных на разных машинах
+[macvlan](https://docs.docker.com/network/macvlan/) - назначает каждому контейнеру MAC
+[none](https://docs.docker.com/network/none/) - Отключает локальный контейнер от сети, оставляя только localhost
+[Network plugin](https://docs.docker.com/engine/extend/plugins_services/) - см. документацию
+
 ### Работа с сетями
 
 Запускаю проект в 2-х bridge сетях. Так, чтобы сервис ui не имел доступа к базе данных. Т.е. ui должен подключаться к comment и post (сеть - front-net), но сами comment и post должны иметь подключение к бд (сеть - back_net).
@@ -1439,7 +1469,7 @@ ubuntu              16.04               5e13f8dd4c1a        6 weeks ago         
 1. Запускаю [Reddit](docker/examples/4) и удаляю все созданные и скачанные образы.
 ```
 cd /home/appuser/docker/examples/4
-docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) && docker rmi $(docker images -a -q)
+docker stop $(docker ps -q) && docker rm $(docker ps -q)
 ```
 2. Скачал последний образ mongod:
 ```
@@ -1472,7 +1502,7 @@ docker network connect front_net post
 docker network connect front_net comment
 ```
 7. Проверяю, что получилось пройдя по ссылке в [браузере](http://10.50.10.10:9292). Все работает.<br>
-8. Смотрю как выглядит [сетевой стек](https://developer.ibm.com/recipes/tutorials/networking-your-docker-containers-using-docker0-bridge:
+8. Смотрю как выглядит [сетевой стек](https://developer.ibm.com/recipes/tutorials/networking-your-docker-containers-using-docker0-bridge):
 - выполняю:
 ```
 docker network ls
@@ -1534,7 +1564,7 @@ sudo ps ax | grep docker-proxy
 Этот процесс в данный момент слушает сетевой tcp-порт 9292.<br>
 8. Останавливаю контейнеры:
 ```
-docker kill $(docker ps -q)
+docker stop $(docker ps -q) && docker rm $(docker ps -q)
 ```
 
 </p>
@@ -1550,6 +1580,10 @@ Docker-compose это простой инструмент, который поз
 
 В данном задании сделано:<br>
 - Установка Docker + Docker-compose
+- Запуск Reddit
+- Запуск Reddit с множеством сетей
+- Именование проекта в docker-compose
+- Переопределение docker-compose.yml
 
 ### Установка Docker + Docker-compose
 1. Создаю [VM](vagrant/examples/3) Docker + Docker-compose средствами Vagrant и разворачиваю:
@@ -1566,6 +1600,73 @@ ssh -i ~/.ssh/appuser appuser@10.50.10.10
 ```
 docker-compose -v
 ```
+### Запуск [Reddit](docker/examples/5)
+1. В директории с проектом создаю файл [docker-compose.yml](docker/examples/5/docker-compose.yml), его [синтаксис](https://docs.docker.com/compose/compose-file/). Важно, чтобы папки ui, comment, post находились рядом.
+```
+cd /home/appuser/docker/examples/5
+```
+2. Docker-compose поддерживает интерполяцию(подстановку) переменных окружения.<br>
+В данном случае это переменная USERNAME.<br>
+Поэтому перед запуском необходимо экспортировать значения данных переменных окружения:
+```
+export USERNAME=test
+docker-compose up -d
+```
+3. Проверяем произошел ли запуск:
+```
+docker-compose ps
+```
+```
+
+```
+4. Проверяю, что получилось пройдя по ссылке в [браузере](http://10.50.10.10:9292). Все работает.<br>
+5. Останавливаю контейнеры:
+```
+docker-compose down
+```
+### Запуск [Reddit](docker/examples/6) с множеством [сетей](docker/examples/4)
+1. Чтобы не осуществлять экспорт переменных создаю файл c расширением .env содержащий переменные.<br>
+Без использования команд source и export docker-compose должен подхватить переменные из этого файла.<br>
+P.S. В  git лучше коммитить файл с расширением вроде .env.example, в будущем от него продуцировать файл с расширением .env.
+```
+cd /home/appuser/docker/examples/6
+```
+2. Запускаю проект:
+```
+docker-compose up -d
+```
+3. Проверяю, что получилось пройдя по ссылке в [браузере](http://10.50.10.10:9292). Все работает.<br>
+4. Останавливаю контейнеры:
+```
+docker-compose down
+```
+### Именование проекта в docker-compose
+По-умолчанию докер композ составляет имена запущеных контейнеров по следующей схеме:
+```
+БазовоеИмяПроекта_ИмяСервиса_НомерИнстанса
+```
+БазовоеИмяПроекта по-умолчанию определяется как имя каталога, в котором находится docker-compose.yml. Это имя можно изменить, при запуске композа:
+```
+docker-compose -p <БазовоеИмяПроекта> up
+docker-compose -p <БазовоеИмяПроекта> down
+```
+Либо задав переменную окружения COMPOSE_PROJECT_NAME
+
+### Переопределение docker-compose.yml
+Docker-compose во время запуска считывает файлы:
+
+docker-compose.yml - основной файл<br>
+docker-compose.override.yml - перопределяет переменные<br>
+.env - файл переменных окружения
+
+Если он находит docker-compose.yml и docker-compose.override.yml, то мержит их в один (обычно override перезаписывает стандартный файл) по [правилам](https://docs.docker.com/compose/extends/#adding-and-overriding-configuration).
+
+Создаю файл docker-compose.override.yml, который позволит:<br>
+- Изменять код каждого из приложений, не выполняя сборку образа<br>
+- Запускать puma для руби приложений в дебаг режиме с двумя воркерами (флаги --debug и -w 2)<br>
+
+Поскольку мы используем bind для подключения папок в override файле, то папки с содержимым должны существовать на удаленном хосте docker-host, либо следует запускать композ локально.
 
 </p>
 </details>
+

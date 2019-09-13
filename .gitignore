@@ -8,3 +8,5 @@
 *.box
 *.logs
 .sshkey/
+
+*.env
