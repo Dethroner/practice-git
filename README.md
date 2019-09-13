@@ -1217,7 +1217,7 @@ vagrant ssh hostname
 </p>
 </details>
 
-<details><summary>10. Технология контейнеризации; Введение в Docker</summary>
+<details><summary>10. Технология контейнеризации. Введение в Docker</summary>
 <p>
 
 ## Docker:
@@ -1227,6 +1227,8 @@ vagrant ssh hostname
 - Установка Docker<br>
 - Запуск Wordpress c mysql<br>
 - Запуск Wordpress c mysql с использованием хостовых папок<br>
+- Оптимизация создаваемых образов<br>
+- Работа с сетями<br>
 
 ### Введение в [Docker](docker/README.md)
 Инструмент для создания образов и развертывания из них контейнеров. Используется для поставки ПО. 
@@ -1350,7 +1352,7 @@ test/post           1.0                 28cc2313afa8        34 minutes ago      
 2. Как добиться уменьшения образов?
 
 Нужно помнить что:<br>
-- размер образа зависит на размер базового образа (к которому можно добавить нужные утилиты и пакеты);
+- размер образа зависит от размера базового образа (к которому можно добавить нужные утилиты и пакеты);
 ```
 ruby                2.2                 6c8e6f9667b2        16 months ago       715MB
 ubuntu              16.04               5e13f8dd4c1a        6 weeks ago         120MB
@@ -1396,7 +1398,7 @@ docker build -t test/ui:2.0 ./ui
 ```
 docker run -d --network=reddit -p 9292:9292 test/ui:2.0
 ```
-4. А если пересобрать все на базе alpine? Пробую:
+4. А если пересобрать все на базе alpine? Пробую:<br>
 comment:
 ```
 cp -R ./comment/2/Dockerfile ./comment/
@@ -1429,6 +1431,140 @@ ruby                2.2                 6c8e6f9667b2        16 months ago       
 ruby                2.4-alpine3.9       ea8b14b30914        11 days ago         54.4MB
 python              3.6.0-alpine        cb178ebbf0f2        2 years ago         88.6MB
 ubuntu              16.04               5e13f8dd4c1a        6 weeks ago         120MB
+```
+### Работа с сетями
+
+Запускаю проект в 2-х bridge сетях. Так, чтобы сервис ui не имел доступа к базе данных. Т.е. ui должен подключаться к comment и post (сеть - front-net), но сами comment и post должны иметь подключение к бд (сеть - back_net).
+
+1. Запускаю [Reddit](docker/examples/4) и удаляю все созданные и скачанные образы.
+```
+cd /home/appuser/docker/examples/4
+docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) && docker rmi $(docker images -a -q)
+```
+2. Скачал последний образ mongod:
+```
+docker pull mongo:latest
+```
+3. Собрал образы:
+```
+docker build -t test/post:1.0 ./post-py
+docker build -t test/comment:1.0 ./comment
+docker build -t test/ui:1.0 ./ui
+```
+4. Создаю docker-сети:
+```
+docker network create back_net --subnet=10.50.20.0/24
+docker network create front_net
+```
+5. Запускаю контейнеры:
+```
+docker run -d --network=front_net -p 9292:9292 --name ui  test/ui:1.0 
+docker run -d --network=back_net --name comment  test/comment:1.0
+docker run -d --network=back_net --name post  test/post:1.0
+docker run -d --network=back_net --name mongo_db --network-alias=post_db --network-alias=comment_db mongo:latest
+```
+Docker при инициализации контейнера может подключить к нему только 1 сеть. <br>
+При этом контейнеры из соседних сетей не будут доступны как в DNS, так и для взаимодействия по сети.<br>
+Поэтому нужно поместить контейнеры post и comment в обе сети. <br>
+6. Подключаю контейнеры ко второй сети:
+```
+docker network connect front_net post
+docker network connect front_net comment
+```
+7. Проверяю, что получилось пройдя по ссылке в [браузере](http://10.50.10.10:9292). Все работает.<br>
+8. Смотрю как выглядит [сетевой стек](https://developer.ibm.com/recipes/tutorials/networking-your-docker-containers-using-docker0-bridge:
+- выполняю:
+```
+docker network ls
+```
+- нахожу ID сетей, созданных в рамках проекта;
+- Выполняю:
+```
+sudo apt-get -y install net-tools bridge-utils
+sudo ifconfig | grep br
+```
+```
+br-7c6b2561bf15: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.50.20.1  netmask 255.255.255.0  broadcast 10.50.20.255
+br-7e8177681195: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.18.0.1  netmask 255.255.0.0  broadcast 172.18.255.255
+        inet 172.17.0.1  netmask 255.255.0.0  broadcast 172.17.255.255
+        inet 10.0.2.15  netmask 255.255.255.0  broadcast 10.0.2.255
+        inet 10.50.10.10  netmask 255.255.255.0  broadcast 10.50.10.255
+```
+- Нахожу bridge-интерфейсы для каждой из сетей. Смотрю информацию о каждом.
+```
+sudo brctl show <interface>
+```
+```
+bridge name     bridge id               STP enabled     interfaces
+br-7c6b2561bf15         8000.0242714854d5       no      veth2f35054
+                                                        veth3ade9ea
+                                                        vethf40c161
+
+```
+Отображаемые veth-интерфейсы - это те части  виртуальных пар интерфейсов, которые лежат в сетевом пространстве хоста и также отображаются в ifconﬁg. Вторые их части лежат внутри контейнеров. <br>
+- Смотрю как выглядит iptables:
+```
+ sudo iptables -nL -t nat
+```
+```
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination
+MASQUERADE  all  --  172.17.0.0/16        0.0.0.0/0
+MASQUERADE  all  --  172.18.0.0/16        0.0.0.0/0
+MASQUERADE  all  --  10.50.20.0/24        0.0.0.0/0
+```
+Данные правила отвечают за выпуск во внешнюю сеть контейнеров из bridge-сетей.<br>
+- В ходе работы у необходимо было прокинуть порт контейнера UI (9292) для доступа к нему снаружи. <br>
+Вот что Docker при этом сделал.<br> 
+Снова смотрю в iptables на таблицу nat цепочка DOCKER и правила DNAT в ней. <br>
+```
+DNAT       tcp  --  0.0.0.0/0            0.0.0.0/0            tcp dpt:9292 to:172.18.0.4:9292
+```
+Они отвечают за перенаправление трафика на адреса уже конкретных контейнеров.<br>
+- Также выполняю:
+```
+sudo ps ax | grep docker-proxy
+```
+```
+ 3075 ?        Sl     0:00 /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 9292 -container-ip 172.18.0.4 -container-port 9292
+```
+Должны быть хотя бы 1 запущенный процесс docker-proxy.<br>
+Этот процесс в данный момент слушает сетевой tcp-порт 9292.<br>
+8. Останавливаю контейнеры:
+```
+docker kill $(docker ps -q)
+```
+
+</p>
+</details>
+
+<details><summary>11. Технология контейнеризации. Docker-compose</summary>
+<p>
+
+## Docker-compose:
+
+Docker-compose это простой инструмент, который позволяет настроить и запустить несколько контейнеров одной командой. Код каждого сервиса находится в своей директории и имеет Dockerfile. Пример структуры проекта можно посмотреть [здесь](https://docs.docker.com/compose/gettingstarted/).
+Вся конфигурация для docker-compose описывается в файле docker-compose.yml, который обычно лежит в корне проекта.
+
+В данном задании сделано:<br>
+- Установка Docker + Docker-compose
+
+### Установка Docker + Docker-compose
+1. Создаю [VM](vagrant/examples/3) Docker + Docker-compose средствами Vagrant и разворачиваю:
+```
+cd ./vagrant/examples/3
+vagrant init
+vagrant up
+```
+2. После поднятия инфраструктуры подключаюсь:
+```
+ssh -i ~/.ssh/appuser appuser@10.50.10.10
+```
+3. Проверяю:
+```
+docker-compose -v
 ```
 
 </p>
