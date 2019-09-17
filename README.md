@@ -1665,8 +1665,143 @@ docker-compose.override.yml - перопределяет переменные<br
 - Изменять код каждого из приложений, не выполняя сборку образа<br>
 - Запускать puma для руби приложений в дебаг режиме с двумя воркерами (флаги --debug и -w 2)<br>
 
-Поскольку мы используем bind для подключения папок в override файле, то папки с содержимым должны существовать на удаленном хосте docker-host, либо следует запускать композ локально.
+Поскольку используется bind для подключения папок в override файле, то папки с содержимым должны существовать на удаленном хосте docker-host, либо следует запускать композ локально.
 
 </p>
 </details>
 
+<details><summary>12. Устройство Gitlab CI. Построение процесса непрерывной интеграции.</summary>
+<p>
+
+## Gitlab CI:<br>
+
+В данном задании сделано:<br>
+- Устройство Gitlab CI. Построение процесса непрерывной интеграции.
+- Установка Gitlab CI в Docker.
+- Настройка Gitlab.
+- Настройка Gitlab CI Pipeline.
+- 
+
+### Устройство Gitlab CI. Построение процесса непрерывной интеграции.
+
+Gitlab CI - инструмент построения пайплайна непрерывной поставки\развертывания. Разделён на 2 части: Сервер управления и Раннеры, на которых проходит сборка и тестирование кода.<br>
+Во время сборки есть возможность использовать [Предопределенные переменные](https://docs.gitlab.com/ee/ci/variables/predefined_variables.html) или [назначить переменные](https://docs.gitlab.com/ee/ci/variables/)
+
+Есть возможность интегрировавть различные [сервисы](https://docs.gitlab.com/ee/user/project/integrations/project_services.html)
+
+Ссылки:<br>
+[quick_start](https://docs.gitlab.com/ee/ci/quick_start/)  
+[Небольшой How-to по установке](https://www.howtoforge.com/tutorial/how-to-install-and-configure-gitlab-ce-on-centos-7/)  
+[Omnibus](https://docs.gitlab.com/omnibus/docker/README.html#install-gitlab-using-docker-compose)  
+[Документация](https://docs.gitlab.com/ee/ci/)  
+[Разветрывание контейнера gitlab-ci](https://docs.gitlab.com/ee/ci/docker/using_docker_build.html)
+
+### Установка Gitlab CI в Docker.<br>
+#### Подготовка инфраструктуры.
+
+CI-сервис является одним из ключевых инфраструктурных сервисов в процессе выпуска ПО и к его доступности, бесперебойной работе и безопасности должны предъявляться повышенные требования.
+
+Gitlab CI состоит из множества компонент и выполняет ресурсозатратную работу, например, компиляция приложений. 
+
+Потребуется создать в Google Cloud новую виртуальную машину со следующими параметрами:
+• 1 CPU 
+• 3.75GB RAM 
+• 100 GB HDD 
+• Linux
+
+В официальной документации описаны [рекомендуемые характеристики](https://docs.gitlab.com/ce/install/requirements.html) сервера.
+
+Так же нужно разрешить подключение по HTTP/HTTPS/SSH.
+
+На сервере для Gitlab CI ставлю Docker и Docker-compose, создаю необходимые директории, назначаю права, копирую docker-compose.yml устанавливающий Gitlab в Docker.
+
+Запускаю [инфраструктуру](terraform/examples/8)
+```
+cd terraform/examples/8
+terraform init
+terraform apply
+```
+#### Запуск Gitlab CI в Docker.
+
+После поднятия инфраструктуры подключаюсь по SSH:
+```
+ssh -i ~/.ssh/appuser appuser@35.187.72.40
+```
+Перехожу в папку с провектом. В docker-compose.yml заменяю <YOUR-VM-IP> внешним IP адресом, который Google присвоил серверу, строка - external_url ‘http://<YOUR-VM-IP>’<br>  
+и запускаю Gitlab CI:
+```
+cd /srv/gitlab
+nano ./docker-compose.yml
+sudo docker-compose up -d
+```
+### Настройка Gitlab CI.
+Открываю в браузере http://35.187.72.40, и Gitlab CI предложит изменить пароль от встроенного пользователя root. Далее, вхожу и правлю глобальные настройки. Выбрав Settings -> Sign-up restrictions и снимаю галочку с sign-up enabled.
+
+Создаю группу homework, а внутри неё репозиторий example.
+
+Добавляю созданный репозиторий в remotes репозитория с микросервисами и делаю пуш:
+```
+git checkout -b gitlab-ci-1
+git remote add gitlab http://<docker-host-ip>/homework/example.git
+git push gitlab gitlab-ci-1
+```
+### Настройка Gitlab CI Pipeline.
+В корне репозитория создаю тестовый файл .gitlab-ci.yml, в котором описываю используемые stages и тестовые задания.
+```
+stages: 
+  - build 
+  - test 
+  - deploy 
+build_job: 
+  stage: build 
+  script: 
+    - echo 'Building' 
+test_unit_job: 
+  stage: test 
+  script: 
+    - echo 'Testing 1' 
+test_integration_job: 
+  stage: test 
+  script: 
+    - echo 'Testing 2' 
+deploy_job: 
+  stage: deploy 
+  script: 
+    - echo 'Deploy'
+```
+Сохраняю файл и пушу в репозиторий Gitlab CI:
+```
+git add .gitlab-ci.yml
+git commit -m "add pipeline definition"
+git push gitlab gitlab-ci-1
+```
+Зайдя в репозиторий Gitlab CI в CI/CD -> Pipelines вижу, что пайплайн готов, но в статусе pending, т.к. нет ранера В репозитории иду в settings -> CI/CD -> Runner settings и нахожу токен для ранера. Запоминаю его - он понадобится для регистрации ранера.
+
+Делаю ранер. На сервере где запущен контейнер с гитлабом выполнию команду:
+```
+docker run -d --name gitlab-runner --restart always \
+-v /srv/gitlab-runner/config:/etc/gitlab-runner \
+-v /var/run/docker.sock:/var/run/docker.sock \
+gitlab/gitlab-runner:latest
+```
+После запуска контейнера зарегистрируем ранер:
+```shell
+root@gitlab-ci:~# docker exec -it gitlab-runner gitlab-runner register --run-untagged --locked=false
+Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/):
+http://<YOUR-VM-IP>/
+Please enter the gitlab-ci token for this runner:
+<TOKEN>
+Please enter the gitlab-ci description for this runner:
+[38689f5588fe]: my-runner
+Please enter the gitlab-ci tags for this runner (comma separated):
+linux,xenial,ubuntu,docker
+Please enter the executor:
+docker
+Please enter the default Docker image (e.g. ruby:2.1):
+alpine:latest
+Runner registered successfully.
+```
+Проверяю, что Pipeline заработал и выполняется.
+
+</p>
+</details>
