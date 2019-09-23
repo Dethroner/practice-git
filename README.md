@@ -1678,9 +1678,11 @@ docker-compose.override.yml - перопределяет переменные<br
 В данном задании сделано:<br>
 - Устройство Gitlab CI. Построение процесса непрерывной интеграции.
 - Установка Gitlab CI в Docker.
-- Настройка Gitlab.
+- Настройка Gitlab CI.
 - Настройка Gitlab CI Pipeline.
-- 
+- Приложение reddit.
+- Автоматизация развертывания gitlab-ci runner.
+- Интеграция pipeline со slack.
 
 ### Устройство Gitlab CI. Построение процесса непрерывной интеграции.
 
@@ -1704,10 +1706,10 @@ CI-сервис является одним из ключевых инфраст
 Gitlab CI состоит из множества компонент и выполняет ресурсозатратную работу, например, компиляция приложений. 
 
 Потребуется создать новую виртуальную машину со следующими параметрами:
-• 1 CPU 
-• 3.75GB RAM 
-• 100 GB HDD 
-• Linux
+- 1 CPU<br> 
+- 3.75GB RAM<br>
+- 100 GB HDD<br>
+- Linux (я взял Debian 9)
 
 На локальной машине таких ресурсов нет, буду создавать в Google Cloud.
 
@@ -1729,7 +1731,7 @@ terraform apply
 ```
 ssh -i ~/.ssh/appuser appuser@35.187.72.40
 ```
-Перехожу в папку с провектом. В docker-compose.yml заменяю <YOUR-VM-IP> внешним IP адресом, который Google присвоил серверу, строка - external_url ‘http://<YOUR-VM-IP>’<br>  
+Перехожу в папку с проектом. В docker-compose.yml заменяю <YOUR-VM-IP> внешним IP адресом, который Google присвоил серверу, строка - external_url ‘http://<YOUR-VM-IP>’<br>  
 и запускаю Gitlab CI:
 ```
 cd /srv/gitlab
@@ -1737,18 +1739,21 @@ nano ./docker-compose.yml
 sudo docker-compose up -d
 ```
 ### Настройка Gitlab CI.
-Открываю в браузере http://35.187.72.40, и Gitlab CI предложит изменить пароль от встроенного пользователя root. Далее, вхожу и правлю глобальные настройки. Выбрав Settings -> Sign-up restrictions и снимаю галочку с sign-up enabled.
+Открываю в браузере http://35.187.72.40, и Gitlab CI предложит изменить пароль от встроенного пользователя root. Далее, вхожу и правлю глобальные настройки. Выбрав Admin area -> Settings -> Sign-up restrictions и снимаю галочку с sign-up enabled.
 
 Создаю группу homework, а внутри неё репозиторий example.
 
-Добавляю созданный репозиторий в remotes репозитория с микросервисами и делаю пуш:
+Клонирую репозиторий и перехожу в него:
 ```
-git checkout -b gitlab-ci-1
-git remote add gitlab http://<docker-host-ip>/homework/example.git
-git push gitlab gitlab-ci-1
+cd ./gitlab
+git clone http://<YOUR-VM-IP>/homework/example.git
+cd example
 ```
 ### Настройка Gitlab CI Pipeline.
 В корне репозитория создаю тестовый файл .gitlab-ci.yml, в котором описываю используемые stages и тестовые задания.
+```
+nano ./.gitlab-ci.yml
+```
 ```
 stages: 
   - build 
@@ -1775,7 +1780,7 @@ deploy_job:
 ```
 git add .gitlab-ci.yml
 git commit -m "add pipeline definition"
-git push gitlab gitlab-ci-1
+git push origin
 ```
 Зайдя в репозиторий Gitlab CI в CI/CD -> Pipelines вижу, что пайплайн готов, но в статусе pending, т.к. нет ранера В репозитории иду в settings -> CI/CD -> Runner settings и нахожу токен для ранера. Запоминаю его - он понадобится для регистрации ранера.
 
@@ -1786,7 +1791,7 @@ docker run -d --name gitlab-runner --restart always \
 -v /var/run/docker.sock:/var/run/docker.sock \
 gitlab/gitlab-runner:latest
 ```
-После запуска контейнера зарегистрируем ранер:
+После запуска контейнера регистрирую ранер:
 ```shell
 root@gitlab-ci:~# docker exec -it gitlab-runner gitlab-runner register --run-untagged --locked=false
 Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/):
@@ -1803,9 +1808,105 @@ Please enter the default Docker image (e.g. ruby:2.1):
 alpine:latest
 Runner registered successfully.
 ```
+Делаю некоторые правки раннера Admin Area -> Runners созданный ранее my-runner Edit и проверяю чтобы:
+- Run untagged jobs было true (стоит птичка)<br>
+- Lock to current projects было false (не стоит птичка)
+
 Проверяю, что Pipeline заработал и выполняется.
 
+### Приложение reddit.
+Создаю новый проект для reddit в той же группе.<br>
+Переношу в него код reddit app (ветка monolith).
+```
+cd ./gitlab
+git clone https://github.com/Artemmkin/reddit.git 
+cd reddit 
+git remote add gitlab http://<YOUR-VM-IP>/homework/reddit.git 
+git push -u gitlab
+```
+Добавляю в репозиторий файл с описанием пайплайна. Создав файл .gitlab-ci.yml с содержимым в репозитории reddit.
+```
+nano ./.gitlab-ci.yml
+```
+```
+image: ruby:2.4.2 
+stages: 
+  - test 
+variables: 
+  DATABASE_URL: 'mongodb://mongo/user_posts' 
+before_script: 
+  - bundle install 
+test: 
+  stage: test 
+  services: 
+    - mongo:latest 
+  script: 
+    - ruby simpletest.rb
+```
+В описании pipeline есть вызов теста в файле simpletest.rb, создаю его в корне репозитория.
+```
+nano ./simpletest.rb
+```
+```
+require_relative './app' 
+require 'test/unit' 
+require 'rack/test' 
+set :environment, :test 
+class MyAppTest < Test::Unit::TestCase 
+  include Rack::Test::Methods 
+  def app 
+    Sinatra::Application 
+  end 
+  def test_get_request 
+    get '/' 
+    assert last_response.ok? 
+  end 
+end
+```
+Добавляю библиотеку для тестирования (после gem 'mongo') в Gemﬁle приложения (в корне репозитория reddit):
+```
+nano ./Gemfile
+```
+```
+gem 'rack-test'
+```
+Отправляю изменения в репозиторий и вижу на странице CI/CD, что для этого проекта, так же не включен раннер.
+```
+git add .
+git commit -m "Add tests."
+git push -u gitlab
+```
+Включаю раннер в настройках проекта settings -> CI/CD -> Runner settings -> Enable for this project.<br>
+Теперь на каждое изменение в коде приложения будет запущен тест.
 
+### Автоматизация развертывания gitlab-ci runner.
+Для автоматизации развертывания и регистрации раннера будет использоваться ансибл. Создаю папку [ansible](gitlab/ansible).
+
+Для установки и регистрации раннера на виртуальных машинах будет использоваться роль из ansible-galaxy `riemers.gitlab-runner`. Создаю файл requirements.yml в котором опишу используемую роль.
+
+Теперь достаточно выполнить команду
+
+``` shell
+asible-galaxy install -r requiements.yml
+```
+Для установки роли.
+
+Создаю папку playbooks, а в ней файл gitlab-runner.yml в котором опишу установку раннера через используемую роль. Переменные, которые описывают усановку и регистрацию ранера помещаю в файл `vars/gitlab-runner.yml`
+
+Теперь для установки и регистрации раннера на хосты, достаточно выполнить команду:
+
+```shell
+ansible-playbook playbooks/gitlab-runner.yml
+```
+
+### Интеграция pipeline со slack.
+
+Перехожу по ссылке:
+
+Нажимаю кнопку **Add Configuration**. Выбираю свой канал и нажимаю на кнопку **Add Intergration**. Копирую ссылку из поля **Webhook URL**. Нажимаю **Save Settings**.
+
+Иду в гитбал в проект settings -> integration и нахожу там пункт **slack notification**.
+Проверяю Active. В поле Webhook вставляю скопированную ссылку. В поле Username пишу Gitlab. Снимаю галочку "Notify only default branch" а так же снимаю "Notify only broken pipelines". В списке оставляю с галочками только то, что нужно и указываю канал.
 
 </p>
 </details>

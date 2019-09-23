@@ -1,0 +1,2 @@
+- src: riemers.gitlab-runner
+  version: v1.3.1

@@ -1,0 +1,10 @@
+plugin: gcp_compute
+projects:
+  - docker-248611
+regions:
+  - europe-west1
+groups:
+  docker: "'docker-tf' in name"
+filters: []
+auth_kind: serviceaccount
+service_account_file: ~/ansible_gcp-docker_key.json
