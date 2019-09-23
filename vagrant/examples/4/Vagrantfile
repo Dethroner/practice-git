@@ -1,0 +1,38 @@
+Vagrant.configure("2") do |config|
+  
+  config.vm.define "de", primary: true do |ansnode|
+    ansnode.vm.box = "package.box"
+	ansnode.vm.hostname = "de"
+    ansnode.vm.network "private_network", ip: "10.50.10.10"
+    ansnode.vm.provider "virtualbox" do |vb|
+      vb.name = "de"
+	  vb.cpus = "2"
+      vb.memory = "4096"
+    end
+	
+	ansnode.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+    
+	ansnode.vm.provision "shell", path: "./files/gitlab.sh"
+	
+	ansnode.vm.provision "shell", path: "./files/user-slave.sh", args: "appuser"
+
+	ansnode.vm.provision "1",
+	  type:"file",
+	  preserve_order: true,
+	  source: "./files/docker-compose.yml",
+	  destination: "/srv/gitlab/docker-compose.yml"
+	ansnode.vm.provision "2",
+	  type:"shell",
+	  preserve_order: true,
+	  inline: <<-SHELL
+        echo "Start GitLab CI"
+		cd /srv/gitlab && sudo docker-compose up -d
+		echo "Start runner for GitLab CI"
+        sudo docker run -d --name gitlab-runner --restart always \
+			-v /srv/gitlab-runner/config:/etc/gitlab-runner \
+			-v /var/run/docker.sock:/var/run/docker.sock \
+			gitlab/gitlab-runner:latest
+      SHELL
+
+  end
+end
