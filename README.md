@@ -1683,6 +1683,7 @@ docker-compose.override.yml - перопределяет переменные<br
 - Приложение reddit.
 - Автоматизация развертывания gitlab-ci runner.
 - Интеграция pipeline со slack.
+- Установка Gitlab CI + runner в Vagrant.
 
 ### Устройство Gitlab CI. Построение процесса непрерывной интеграции.
 
@@ -1750,7 +1751,7 @@ git clone http://<YOUR-VM-IP>/homework/example.git
 cd example
 ```
 ### Настройка Gitlab CI Pipeline.
-В корне репозитория создаю тестовый файл .gitlab-ci.yml, в котором описываю используемые stages и тестовые задания.
+1. В корне репозитория создаю тестовый файл .gitlab-ci.yml, в котором описываю используемые stages и тестовые задания.
 ```
 nano ./.gitlab-ci.yml
 ```
@@ -1776,22 +1777,22 @@ deploy_job:
   script: 
     - echo 'Deploy'
 ```
-Сохраняю файл и пушу в репозиторий Gitlab CI:
+2. Сохраняю файл и пушу в репозиторий Gitlab CI:
 ```
 git add .gitlab-ci.yml
 git commit -m "add pipeline definition"
 git push origin
 ```
-Зайдя в репозиторий Gitlab CI в CI/CD -> Pipelines вижу, что пайплайн готов, но в статусе pending, т.к. нет ранера В репозитории иду в settings -> CI/CD -> Runner settings и нахожу токен для ранера. Запоминаю его - он понадобится для регистрации ранера.
+3. Зайдя в репозиторий Gitlab CI в CI/CD -> Pipelines вижу, что пайплайн готов, но в статусе pending, т.к. нет ранера В репозитории иду в settings -> CI/CD -> Runner settings и нахожу токен для ранера. Запоминаю его - он понадобится для регистрации ранера.
 
-Делаю ранер. На сервере где запущен контейнер с гитлабом выполнию команду:
+4. Делаю ранер. На сервере где запущен контейнер с гитлабом выполнию команду:
 ```
 docker run -d --name gitlab-runner --restart always \
 -v /srv/gitlab-runner/config:/etc/gitlab-runner \
 -v /var/run/docker.sock:/var/run/docker.sock \
 gitlab/gitlab-runner:latest
 ```
-После запуска контейнера регистрирую ранер:
+5. После запуска контейнера регистрирую раннер:
 ```shell
 root@gitlab-ci:~# docker exec -it gitlab-runner gitlab-runner register --run-untagged --locked=false
 Please enter the gitlab-ci coordinator URL (e.g. https://gitlab.com/):
@@ -1808,11 +1809,11 @@ Please enter the default Docker image (e.g. ruby:2.1):
 alpine:latest
 Runner registered successfully.
 ```
-Делаю некоторые правки раннера Admin Area -> Runners созданный ранее my-runner Edit и проверяю чтобы:
+6. Делаю некоторые правки раннера Admin Area -> Runners созданный ранее my-runner Edit и проверяю чтобы:
 - Run untagged jobs было true (стоит птичка)<br>
 - Lock to current projects было false (не стоит птичка)
 
-Проверяю, что Pipeline заработал и выполняется.
+7. Проверяю, что Pipeline заработал и выполняется.
 
 ### Приложение reddit.
 Создаю новый проект для reddit в той же группе.<br>
@@ -1907,6 +1908,24 @@ ansible-playbook playbooks/gitlab-runner.yml
 
 Иду в гитбал в проект settings -> integration и нахожу там пункт **slack notification**.
 Проверяю Active. В поле Webhook вставляю скопированную ссылку. В поле Username пишу Gitlab. Снимаю галочку "Notify only default branch" а так же снимаю "Notify only broken pipelines". В списке оставляю с галочками только то, что нужно и указываю канал.
+
+### Установка Gitlab CI + runner в [Vagrant](vagrant/examples/4)
+
+1. Запускаю развертывание инфраструктуры:
+```
+cd vagrant/examples/4
+vagrant init
+vagrant up
+```
+2. Делаю операции из <b>Настройка Gitlab CI</b>.<br>
+3. После запуска инфраструктуры подлючаюсь к ВМ:
+```
+ssh -i ~/.ssh/appuser appuser@10.50.10.10
+```
+и регистрирую ранер см. пп.3,5-7 <b>Настройка Gitlab CI Pipeline</b>. После регистрации выхожу с SSH-сессии.
+
+4. Gitlab CI готов к работе.
+
 
 </p>
 </details>
