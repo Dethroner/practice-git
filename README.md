@@ -1,4 +1,7 @@
-# Dethroner					[![Build Status](https://travis-ci.org/Dethroner/practice-git.svg?branch=master)](https://travis-ci.org/Dethroner/practice-git)
+# Dethroner
+
+[![Build Status](https://travis-ci.org/Dethroner/practice-git.svg?branch=master)](https://travis-ci.org/Dethroner/practice-git)
+[![License](https://img.shields.io/badge/license-MIT%20License-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
 <details><summary>01. Система контроля версий. Принципы работы с Git.</summary>
 <p>
@@ -1925,6 +1928,50 @@ ssh -i ~/.ssh/appuser appuser@10.50.10.10
 и регистрирую ранер см. пп.3,5-7 <b>Настройка Gitlab CI Pipeline</b>. После регистрации выхожу с SSH-сессии.
 
 4. Gitlab CI готов к работе.
+
+</p>
+</details>
+
+<details><summary>13. Мониторинг.</summary>
+<p>
+
+## Prometheus:<br>
+
+В данном задании сделано:<br>
+- Prometheus: запуск и знакомство
+
+
+### Prometheus: запуск и знакомство
+#### Подготовка окружения
+
+1. Запускаю развертывание инфраструктуры:
+```
+cd vagrant/examples/2
+vagrant init
+vagrant up
+```
+2. После запуска инфраструктуры подлючаюсь к ВМ:
+```
+ssh -i ~/.ssh/appuser appuser@10.50.10.10
+```
+#### Запуск прометеус в контейнере.
+
+Запускаю готовый образ с докер-хаба.
+```
+docker run --rm -p 9090:9090 -d --name prometheus  prom/prometheus
+```
+
+#### Знакомство с Prometheus
+
+1. Открываю веб интерфейс и знакомлюсь с системой
+```
+http://10.50.10.10:9090/
+```
+2. Останавливаю контейнер
+```
+docker stop prometheus
+```
+
 
 
 </p>
