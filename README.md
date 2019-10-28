@@ -1937,9 +1937,12 @@ ssh -i ~/.ssh/appuser appuser@10.50.10.10
 
 ## Prometheus:<br>
 
+[Документация](https://prometheus.io/docs/prometheus/latest/getting_started/)<br>
+[Прометеус](https://prometheus.io/docs/introduction/overview/) - [tsdb](https://en.wikipedia.org/wiki/Time_series_database) использующая язык запросов [PromQL](https://prometheus.io/docs/prometheus/latest/querying/basics/).
+
 В данном задании сделано:<br>
 - Prometheus: запуск и знакомство
-
+- Мониторинг состояния микросервисов
 
 ### Prometheus: запуск и знакомство
 #### Подготовка окружения
@@ -1954,7 +1957,7 @@ vagrant up
 ```
 ssh -i ~/.ssh/appuser appuser@10.50.10.10
 ```
-#### Запуск прометеус в контейнере.
+#### Запуск Prometheus в контейнере.
 
 Запускаю готовый образ с докер-хаба.
 ```
@@ -1972,6 +1975,95 @@ http://10.50.10.10:9090/
 docker stop prometheus
 ```
 
+### Мониторинг состояния микросервисов<br>
+#### Подготовка инфраструктуры
+
+1. Запускаю развертывание инфраструктуры:
+```
+cd vagrant/examples/3
+vagrant init
+vagrant up
+```
+2. После запуска инфраструктуры подлючаюсь к ВМ:
+```
+ssh -i ~/.ssh/appuser appuser@10.50.10.10
+```
+#### Простая проверка работы
+
+1. Создаю Docker образ через [Dockerfile](docker/example/8/prometheus/Dockerﬁle) который будет копировать файл конфигурации внутрь контейнера.<br>
+2. Конфигурация Prometheus, в отличие от многих других систем мониторинга, происходит через файл конфигурации [prometheus.yml](docker/example/8/prometheus/prometheus.yml) и опции командной строки. <br>
+В код микросервисов добавил healthcheck-и для проверки работоспособности приложения.<br>
+3. Поднимаю сервисы:
+```
+cd /home/appuser/docker/example/8
+docker-compose up -d
+```
+4. Открываю веб интерфейс
+```
+http://10.50.10.10:9090/
+```
+5. Смотрю список endpoint-ов (вкладка Status->Targets), с которых собирается информация. Помимо самого Prometheus, я определил в конфигурации мониторинг ui и comment сервисы. Endpoint-ы должны быть в состоянии UP.<br>
+Healthcheck-и представляют собой проверки того, что сервис здоров и работает в ожидаемом режиме. В данном случае healthcheck выполняется внутри кода микросервиса и выполняет проверку того, что все сервисы, от которых зависит его работа, ему доступны. Если требуемые для его работы сервисы здоровы, то healthcheck проверка возвращает status = 1, что соответсвует тому, что сам сервис здоров. Если один из нужных ему сервисов нездоров или недоступен, то проверка вернет status = 0.<br>
+6. Проверка состояния сервиса UI. Ввести в поиск ***ui_health*** нажать Execute, мониторинг выведет что-то похожее:
+```
+ui_health{branch="build_info_missing",commit_hash="build_info_missing",instance="ui:9292",job="ui",version="0.0.1"}
+```
+!!! Помимо имени метрики и ее значения, мы также видим информацию в лейблах о версии приложения, комите и ветке кода в Git-е. 
+
+Нажав Graph получим графическое распределение метрики системы. Видно, что статус UI сервиса был стабильно 1, что означает, что сервис работал.<br>
+Попробую остановить сервис post на некоторое время и пронаблюдаю, как изменится статус ui сервиса, который зависим от post:
+```
+docker-compose stop post
+```
+Метрика изменила свое значение на 0, что означает, что UI сервис стал нездоров.<br>
+7. Поиск проблемы. Помимо статуса сервиса, мы также собираем статусы сервисов, от которых он зависит. Набираю в строке выражений ui_health_ и монитоинг предлагает дополнить названия метрик.<br>
+Проверил comment сервис. Вижу, что сервис свой статус не менял в данный промежуток времени. <br>
+А с post сервисом все плохо.<br>
+8. Чиню созданную самим же проблему ;)
+```
+docker-compose start post
+```
+Post сервис поправился.<br>
+UI сервис тоже.<br>
+9. Останавливаю сервисы и очищаю
+```
+docker-compose down
+docker system prune
+```
+
+
+#### Проверка работы с использованием экспортеров.
+##### Общая информация
+
+Экспортер похож на вспомогательного агента для сбора метрик. В ситуациях, когда не возможно реализовать отдачу метрик мониторингу в коде приложения, можно использовать экспортер, который будет транслировать метрики приложения или системы в формате доступном для чтения Prometheus.
+
+Prometheus:
+- настраиваю через [конфигурационные файлы](docker/example/9/monitoring/prometheus/prometheus.yml) и опции запуска
+- для сбора метрик использую [экспортеры](https://prometheus.io/docs/instrumenting/exporters/)
+- для информирования можно использовать [Алертменеджер](https://prometheus.io/docs/alerting/configuration/). 
+
+Пишу[конфигурационный файл](docker/example/9/monitoring/prometheus/prometheus.yml) для прометеуся и [Dockerfile](docker/example/9/monitoring/prometheus/Dockerfile) для сборки кастомного образа.
+
+Для сборки метрик хоста ,с запущенными контейнерами, буду использовать [node-exporter](https://github.com/prometheus/node_exporter)
+
+Метрики с базы данных буду собирать с помощью [mongodb_exporter](https://github.com/percona/mongodb_exporter) и [Dockerfile](docker/example/9/monitoring/mongodb_exporter/Dockerfile) для сборки контейнера.
+
+Для проверки доступности контейнеров и страниц с метриками буду использовать [blackbox_exporter](https://github.com/prometheus/blackbox_exporter). Пишу [конфигурацию](docker/example/9/monitoring/blackbox_exporter/blackbox.yml) (Более подробно см. [тут](https://github.com/prometheus/blackbox_exporter/blob/master/example.yml), и [Dockerfile](docker/example/9/monitoring/blackbox_exporter/Dockerfile) для сборки контейнера.
+
+Пишу в [docker-compose.yml](docker/example/9/docker/docker-compose.yml) описание сервисов монитормнга.
+
+##### Проверка
+1. Поднимаю сервисы:
+```
+cd /home/appuser/docker/example/9/docker
+docker-compose up -d
+```
+2. Открываю веб интерфейс
+```
+http://10.50.10.10:9090/
+```
+3. Смотрю, список endpoint-ов - должны появится еще endpoit-ы. <br>
+Нпример, получаю информацию об использовании CPU (node_cpu) на хостовой машине.
 
 
 </p>

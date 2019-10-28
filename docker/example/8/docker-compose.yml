@@ -1,0 +1,77 @@
+version: "3.6" # docker-compose version 1.21.0
+
+services:
+  post_db:
+    container_name: post_db
+    image: ${DB_IMAGE}
+    volumes:
+    - post_db:/data/db
+    networks:
+      back_net:
+        aliases:
+        - post_db
+        - comment_db
+
+  comment:
+    build: ./comment/
+    container_name: comment
+    image: ${USER_NAME}/comment:${COMMENT_VERSION}
+    networks:
+      front_net:
+        aliases: 
+        - comment
+      back_net:
+        aliases: 
+        - comment
+
+  post-py:
+    build: ./post/
+    container_name: post
+    image: ${USER_NAME}/post:${POST_VERSION}
+    networks:
+      front_net:
+        aliases: 
+        -  post
+      back_net:
+        aliases: 
+        -  post
+
+  ui:
+    build: ./ui/
+    container_name: ui
+    image: ${USER_NAME}/ui:${UI_VERSION}
+    ports:
+    - ${UI_PORTS}
+    networks:
+    - front_net
+  
+  prometheus:
+    build: ./prometheus
+    container_name: prometheus
+    image: ${USER_NAME}/prometheus:${PROM_VERSION}
+    ports:
+      - '9090:9090'
+    volumes:
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention=1d'
+    networks:
+      - front_net
+      - back_net
+  
+volumes:
+  post_db:
+  prometheus_data:
+
+networks:
+  front_net:
+    ipam:
+      config:
+      - subnet: "10.50.1.0/24"
+
+  back_net:
+    ipam:
+      config:
+      - subnet: "10.50.2.0/24"
