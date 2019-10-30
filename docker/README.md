@@ -56,6 +56,7 @@ docker kill -s HUP nginx
 
 ### Подключение к существующему контейнеру
 docker attach nginx
+docker exec -it <mycontainer> bash
 
 ## Управление образами
 ### Список образов:

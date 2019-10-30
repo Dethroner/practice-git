@@ -1,0 +1,9 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus Server
+    isDefault: true
+    type: prometheus
+    access: direct
+    url: http://10.50.10.10:9090
+    editable: true

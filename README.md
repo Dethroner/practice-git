@@ -2048,7 +2048,7 @@ Prometheus:
 
 Метрики с базы данных буду собирать с помощью [mongodb_exporter](https://github.com/percona/mongodb_exporter) и [Dockerfile](docker/example/9/monitoring/mongodb_exporter/Dockerfile) для сборки контейнера.
 
-Для проверки доступности контейнеров и страниц с метриками буду использовать [blackbox_exporter](https://github.com/prometheus/blackbox_exporter). Пишу [конфигурацию](docker/example/9/monitoring/blackbox_exporter/blackbox.yml) (Более подробно см. [тут](https://github.com/prometheus/blackbox_exporter/blob/master/example.yml), и [Dockerfile](docker/example/9/monitoring/blackbox_exporter/Dockerfile) для сборки контейнера.
+Для проверки доступности контейнеров и страниц с метриками буду использовать [blackbox_exporter](https://github.com/prometheus/blackbox_exporter). Пишу [конфигурацию](docker/example/9/monitoring/blackbox_exporter/blackbox.yml) (Более подробно см. [тут](https://github.com/prometheus/blackbox_exporter/blob/master/example.yml)), и [Dockerfile](docker/example/9/monitoring/blackbox_exporter/Dockerfile) для сборки контейнера.
 
 Пишу в [docker-compose.yml](docker/example/9/docker/docker-compose.yml) описание сервисов монитормнга.
 
@@ -2065,6 +2065,22 @@ http://10.50.10.10:9090/
 3. Смотрю, список endpoint-ов - должны появится еще endpoit-ы. <br>
 Нпример, получаю информацию об использовании CPU (node_cpu) на хостовой машине.
 
+#### prometheus и Grafana красивые dashboard'ы
+1. Поднимаю сервисы:
+```
+cd /home/appuser/docker/example/10/docker
+docker-compose up -d
+```
+2. Открываю веб интерфейс Grafana
+```
+http://10.50.10.10:3000
+```
+3. Вижу что Prometeus уже подключен, но нет dashboard'ов, импортирую ():
+- DockerMonitoring.json
+- UI_Service_Monitoring.json <br>
+при импорте ввожу имя и выбираю источник (Prometeus server).
+
+4. Вижу подключенные dashboard'ы.
 
 </p>
 </details>
