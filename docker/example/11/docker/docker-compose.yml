@@ -1,0 +1,131 @@
+version: "3.6"
+
+services:
+  post_db:
+    container_name: post_db
+    image: ${DB_IMAGE}
+    volumes:
+    - post_db:/data/db
+    networks:
+      back_net:
+        aliases:
+        - post_db
+        - comment_db
+
+  comment:
+    build: ../src/comment/
+    container_name: comment
+    image: ${USER_NAME}/comment:${COMMENT_VERSION}
+    environment:
+      - ZIPKIN_ENABLED=${ZIPKIN_ENABLED}
+      - COMMENT_DATABASE_HOST=comment_db
+      - COMMENT_DATABASE=comments
+    networks:
+      front_net:
+        aliases: 
+        - comment
+      back_net:
+        aliases: 
+        - comment
+
+  post:
+    build: ../src/post/
+    container_name: post
+    image: ${USER_NAME}/post:${POST_VERSION}
+    environment:
+      - ZIPKIN_ENABLED=${ZIPKIN_ENABLED}
+      - POST_DATABASE_HOST=post_db
+      - POST_DATABASE=posts
+    networks:
+      front_net:
+        aliases: 
+        -  post
+      back_net:
+        aliases: 
+        -  post
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 10.50.10.10:24224
+        tag: service.post
+    
+
+  ui:
+    build: ../src/ui/
+    container_name: ui
+    image: ${USER_NAME}/ui:${UI_VERSION}
+    environment:
+    - ZIPKIN_ENABLED=${ZIPKIN_ENABLED}
+    - POST_SERVICE_PORT=5000
+    - COMMENT_SERVICE_PORT=9292
+    ports:
+    - ${UI_PORTS}
+    networks:
+    - front_net
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 10.50.10.10:24224
+        tag: service.ui
+  
+  fluentd:
+    build: ../logging/fluentd
+    image: ${USER_NAME}/fluentd
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    networks:
+      back_net:
+        aliases: 
+        -  fluentd
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - front_net
+      - back_net
+
+  elasticsearch:
+    image: elasticsearch:7.3.2
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - discovery.type=single-node
+    expose:
+      - 9200
+    ports:
+      - "9200:9200"
+    networks:
+      back_net:
+        aliases: 
+        -  elastic
+
+  kibana:
+   image: kibana:7.3.2
+   container_name: kibana
+   environment:
+     ELASTICSEARCH_HOSTS: http://10.50.10.10:9200
+   ports:
+      - "5601:5601"
+   networks:
+      back_net:
+        aliases: 
+        -  kibana
+
+ 
+volumes:
+  post_db:
+
+networks:
+  front_net:
+    ipam:
+      config:
+      - subnet: "10.50.1.0/24"
+
+  back_net:
+    ipam:
+      config:
+      - subnet: "10.50.2.0/24"

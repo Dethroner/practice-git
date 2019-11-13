@@ -2065,7 +2065,7 @@ http://10.50.10.10:9090/
 3. Смотрю, список endpoint-ов - должны появится еще endpoit-ы. <br>
 Нпример, получаю информацию об использовании CPU (node_cpu) на хостовой машине.
 
-#### prometheus и Grafana красивые dashboard'ы
+#### Prometheus и Grafana красивые dashboard'ы
 1. Поднимаю сервисы:
 ```
 cd /home/appuser/docker/example/10/docker
@@ -2075,12 +2075,230 @@ docker-compose up -d
 ```
 http://10.50.10.10:3000
 ```
-3. Вижу что Prometeus уже подключен, но нет dashboard'ов, импортирую ():
+3. Вижу что Prometeus уже подключен, но нет dashboard'ов, [импортирую](docker/example/10/monitoring/grafana/dashboards):
 - DockerMonitoring.json
 - UI_Service_Monitoring.json <br>
-при импорте ввожу имя и выбираю источник (Prometeus server).
+при импорте подтверждаю имя и выбираю источник (Prometeus server).
 
 4. Вижу подключенные dashboard'ы.
+
+</p>
+</details>
+
+<details><summary>14. Логирование.</summary>
+<p>
+
+## Elastic Stack:
+
+В данном задании сделано:
+- Подготовка окружения
+- Elastic Stack
+- Структурированные логи
+- Неструктурированные логи
+- Разбор логов с помощью grok-шаблонов
+- Распределенный трейсинг
+
+### Подготовка окружения
+
+1. Запускаю развертывание инфраструктуры:
+```
+cd vagrant/examples/3
+vagrant init
+vagrant up
+```
+2. После запуска инфраструктуры подлючаюсь к ВМ:
+```
+ssh -i ~/.ssh/appuser appuser@10.50.10.10
+```
+3. Поднимаю сервисы:
+```
+cd /home/appuser/docker/example/11/docker
+docker-compose up -d
+```
+### Elastic Stack
+[Elasticsearch](https://www.elastic.co/products/) — тиражируемая свободная программная поисковая система. вместе со связанными проектами — механизмом сбора данных и анализа журналов Logstash и платформой аналитики и визуализации Kibana; эти три продукта предназначены для использования в качестве интегрированного решения, называемого «Elastic Stack». <br>
+
+Поднимаю центральную систему логирования на Elastic. Однако, вместо стандартного для Logstash использую fluentd.<br>
+В директории logging создаю папку fluentd, в которой простой докер-файл для сборки образа fluentd с его конфигурационным файлом fluent.conf.
+
+!!! При запуске Elasticsearch может возникнуть ошибка и контейнер вылетит:
+```
+max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
+```
+Для исправления, необходимо поправить параметры ядра linux на хосте с докер-контейнерами:
+```shell
+docker-machine ssh logging
+sudo vim /etc/sysctl.conf
+```
+Необходимо добавить параметр:
+```
+vm.max_map_count = 262144
+```
+И применить параметры ядра:
+```shell
+sudo sysctl -p
+```
+
+### Структурированные логи
+#### Предварительная подготовка
+Подключаюсь к сервису post для проверки:
+```
+docker-compose logs -f post
+```
+#### Отправка логов в Fluentd
+Для отправки логов в fluentd использую докер-драйвер [fluentd](https://docs.docker.com/config/containers/logging/fluentd/). Добавив его в докер-композ файл.
+На примере post:
+```
+...
+  post:
+...
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 10.50.10.10:24224
+        tag: service.post 
+```
+#### Использование фильтров в fluentd
+Для парсинга JSON в логе, определил фильтры в конфигурации fluentd. Файл `logging/fluentd/fluent.conf`
+
+```
+<filter service.post>
+  @type parser
+  format json
+  key_name log
+</filter>
+```
+
+### Неструктурированные логи
+Неструктурированные логи - это логи, формат которых не подстроен под систему централизованного логирования. Они не имеют четкой структуры
+
+#### Логирование UI сервиса
+Добавил драйвер fluentd к сервису UI по аналогии с сервисом post.
+
+Перезапустил сервис и смотрю в kibana на неструктурированные логи.
+
+Для того, что бы распарсить такой лог, необходимо использовать регулярные выражения. Добавили фильтр с ними в fluent.conf
+
+```
+<filter service.ui>
+  @type parser
+  format /\[(?<time>[^\]]*)\]  (?<level>\S+) (?<user>\S+)[\W]*service=(?<service>\S+)[\W]*event=(?<event>\S+)[\W]*(?:path=(?<path>\S+)[\W]*)?request_id=(?<request_id>\S+)[\W]*(?:remote_addr=(?<remote_addr>\S+)[\W]*)?(?:method= (?<method>\S+)[\W]*)?(?:response_status=(?<response_status>\S+)[\W]*)?(?:message='(?<message>[^\']*)[\W]*)?/
+  key_name log
+</filter>
+```
+
+### Разбор логов с помощью grok-шаблонов
+Чтобы не писать регулярные выражения самому, можно использовать grok-шаблоны. По сути это именнованные шаблоны регулярных выражений.
+
+Заменил их на grok-шаблон:
+```
+<filter service.ui>
+  @type parser
+  key_name log
+  format grok
+  grok_pattern %{RUBY_LOGGER}
+</filter>
+```
+Это grok-шаблон, зашитый в плагин для fluentd. В развернутом виде он выглядит вот так:
+```
+%{RUBY_LOGGER} [(?<timestamp>(?>\d\d){1,2}-(?:0?[1-9]|1[0-2])-(?:(?:0[1-9])|(?:[12][0-9])|(?:3[01])|[1-9])[T ](?:2[0123]|[01]?[0-9]):?(?:[0-5][0-9])(?::?(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?))?(?:Z|[+-](?:2[0123]|[01]?[0-9])(?::?(?:[0-5][0-
+9])))?) #(?<pid>\b(?:[1-9][0-9]*)\b)\] *(?<loglevel>(?:DEBUG|FATAL|ERROR|WARN|INFO)) -- +(?<progname>.*?): (?<message>.*)
+```
+Для полноценного парсинга использую несколько grok-шаблонов. Добавив еще секцию с фильтром в конфиг fluentd
+```
+<filter service.ui>
+  @type parser
+  format grok
+  grok_pattern service=%{WORD:service} \| event=%{WORD:event} \| request_id=%{GREEDYDATA:request_id} \| message='%{GREEDYDATA:message}'
+  key_name message
+  reserve_data true
+</filter>
+```
+Часть логов сервиса ui осталось неразобранной. Необходимо разобрать их через grok-шаблоны.
+
+Добавил новый фильтр после предыдущего:
+```
+<filter service.ui>
+  @type parser
+  format grok
+  grok_pattern service=%{WORD:service} \| event=%{WORD:event} \| path=%{URIPATH:path} \| request_id=%{GREEDYDATA:request_id} \| remote_addr=%{IPORHOST:remote_addr} \| method=%{GREEDYDATA:method} \| response_status=%{NUMBER:response_status}
+  key_name message
+  reserve_data false
+</filter>
+```
+
+### Распределенный трейсинг
+Добавил в докер-композ файл для логирования сервис zipkin, который нужен для сбора информации о распределенном трейсинге.
+```
+...
+services: 
+...
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - front_net
+      - back_net   
+```
+Отрыл порт
+
+Так же, для каждого сервиса добавл переменную ***ZIPKIN_ENABLED***, а в `.env` файле указал:
+```
+ZIPKIN_ENABLED=true
+```
+Что бы зипкин получал трассировку, он должен быть в одной сети с микросервисами. Поэтому добавил в эти сети zipkin.
+
+#### Сломанное приложение (Решение взял у [SJay3](https://github.com/otus-devops-2019-05/SJay3_microservices))
+Задание заключается в следующем:
+
+С приложением происходит что-то странное.
+Пользователи жалуются, что при нажатии на пост они вынуждены долго ждать, пока у них загрузится страница с постом. Жалоб на загрузку других страниц не поступало. Нужно выяснить, в чем проблема, используя Zipkin.
+[сломанное приложение](https://github.com/Artemmkin/bugged-code).
+
+Для начала подготовим инфраструктуру. Что бы не ломать уже существующее приложение, скачаем сломанное в отдельную папку и соберем сервисы с тегом bug
+```shell
+git clone https://github.com/Artemmkin/bugged-code reddit_bug && rm -rf ./reddit_bug/.git
+```
+Отредактируем файлы docker_build.sh внутри каждого из микросервисов, добавив тег bug, после чего выполним скрипты, что бы собрались образы.
+```shell
+export USER_NAME=sjotus
+for i in ui post-py comment; do cd reddit_bug/$i; bash docker_build.sh; cd -; done
+
+```
+
+Т.к. в докерфайлах приложения не указаны переменные окружения, то укажем их в докер-композ файле.
+
+Для ui:
+```
+- POST_SERVICE_HOST=post
+- POST_SERVICE_PORT=5000
+- COMMENT_SERVICE_HOST=comment
+- COMMENT_SERVICE_PORT=9292
+```
+
+Для post:
+```
+- POST_DATABASE_HOST=post_db
+- POST_DATABASE=posts
+```
+
+Для comment:
+```
+- COMMENT_DATABASE_HOST=comment_db
+- COMMENT_DATABASE=comments
+```
+
+Далее отредактируем .env файл, проставив тег bug у приложений и запустим инфраструктуру:
+```shell
+docker-compose -f docker-compose.yml -f docker-compose-logging.yml up -d
+```
+Попытаемся загрузить страницу с постом и заметим, что она долго загружается. Переключимся в зипкин и посмотрим трейсы. Можем увидеть трейс, который выполнялся 3с. Если мы взгянем на него подробнее, то увидим, что основное время запроса занял поиск поста в БД, значит проблема в запросах к БД.
+
+Заглянем в исходный код сервиса post в файл `post_app.py` и найдем функцию отвечающую за поиск одного поста. Увидим, что в условии, если пост найден стоит задержка (`time.sleep(3)`).
+
+Закомментируем этот кусок кода, пересоберем приложение для проверки и увидим, что запросы теперь выполняются намного быстрее.
 
 </p>
 </details>
