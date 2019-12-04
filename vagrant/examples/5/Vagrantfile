@@ -1,0 +1,37 @@
+Vagrant.configure("2") do |config|
+  
+  
+ (0..2).each do |i| 
+  config.vm.define "sw#{i}" do |node|
+    node.vm.box = "debian.box"
+	node.vm.hostname = "sw#{i}"
+    node.vm.network "private_network", ip: "10.50.10.1#{i}"
+    node.vm.provider "virtualbox" do |vb|
+      vb.name = "sw#{i}"
+      vb.memory = "1024"
+    end
+	
+	node.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+    
+	node.vm.provision "shell", path: "./files/docker.sh"
+	node.vm.provision "shell", path: "./files/user-slave.sh", args: "appuser"
+	node.vm.provision "shell", inline: "sudo usermod -aG docker appuser"
+
+	node.vm.provision "1",
+	  type:"file",
+	  preserve_order: true,
+	  source: "../../../docker",
+	  destination: "/tmp/docker"
+	node.vm.provision "2",
+	  type:"shell",
+	  preserve_order: true,
+	  inline: <<-SHELL
+        echo "Start copy"
+        sudo mv /tmp/docker /home/appuser/docker
+	    sudo chmod -R 777 /home/appuser/docker
+	    sudo chown -R appuser:appuser /home/appuser/docker
+      SHELL
+  
+  end
+ end 
+end

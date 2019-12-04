@@ -2302,3 +2302,469 @@ docker-compose -f docker-compose.yml -f docker-compose-logging.yml up -d
 
 </p>
 </details>
+
+<details><summary>15. Оркестрация.</summary>
+<p>
+ <details><summary>15.1 Docker Swarm.</summary>
+ <p>
+
+## Docker Swarm:
+Что такое Docker Swarm можно почитать [тут](https://habr.com/ru/company/redmadrobot/blog/318866/) ,посмотреть примеры применения [тут](https://dotsandbrackets.com/quick-intro-docker-swarm-mode-ru/).
+
+В данном задании сделано:
+- Подготовка окружения
+- Активация Swarm-режима и создание кластера
+- Stack
+- Labels
+- Размещение сервисов
+- Масштабирование сервисов
+- Rolling Update
+- Resources limits
+- Restart policy
+- docker-compose.infra.yml
+
+### Подготовка окружения
+1. Запускаю развертывание инфраструктуры:
+```
+cd vagrant/examples/5
+vagrant init
+vagrant up
+```
+
+### Активация Swarm-режима и создание кластера
+2. После запуска инфраструктуры подлючаюсь к первой ВМ:
+```
+ssh -i ~/.ssh/appuser appuser@10.50.10.10
+```
+3. Инициализирую Swarm-mode:
+```
+docker swarm init --advertise-addr 10.50.10.10
+```
+P.S. если на сервере несколько сетевых интерфейсов или сервер находится за NAT, то необходимо указывать флаг --advertise-addr с конкретным адресом публикации.<br>
+По-умолчанию это будет <адрес интерфейса>:2377
+
+В результате выполнения docker swarm init:
+- Текущая нода переключается в Swarm-режим
+- Текущая нода назначается в качестве Leader менеджера кластера
+- Ноде присваивается хостнейм машины
+- Менеджер конфигурируется для прослушивания на порту 2377
+- Текущая нода получает статус Active, что означает возможность получать задачки от планировщика
+- Запускается внутреннее распределенное хранилище данных Docker для работы оркестратора
+- Генерируется самоподписный корневый (CA) сертификат для Swarm
+- Генерируются токены для присоединения Worker и Manager нод к кластеру
+- Создается Overlay-сеть Ingress для публикации сервисов наружу
+
+Кластер создан, в нем теперь есть 1 manager и можно добавить к нему новые ноды. Сгенерированная команда с токеном для присоединения нод выглядит примерно так:
+```
+docker swarm join --token SWMTKN-1-5b2e8dgiyxepljikd7jvjjrkio3inbtvk2qtezl5obqh5iv5yt-2j2jo8wf82yspzo5dxu05f729 10.50.10.10:2377
+```
+4. Захожу на вторую ВМ:
+```
+ssh -i ~/.ssh/appuser appuser@10.50.10.11
+```
+И ввожу команду для присоединения ее к кластеру введя сгенерированную ранее команду:
+```
+docker swarm join --token SWMTKN-1-5b2e8dgiyxepljikd7jvjjrkio3inbtvk2qtezl5obqh5iv5yt-2j2jo8wf82yspzo5dxu05f729 10.50.10.10:2377
+```
+Получаю ответ:
+```
+This node joined a swarm as a worker.
+```
+5. Добавляю в кластер третью ВМ по аналогии.<br>
+6. Закрываю соединения и возвращаюсь к первой ВМ. Дальше работать буду только с ней. Команды в рамках Swarm-кластера можно запускать только на Manager-нодах.<br>
+7. Проверяю состояние кластера:
+```
+docker node ls
+```
+Вижу такой ответ:
+```shell
+ID                            HOSTNAME            STATUS              AVAILABILITY        MANAGER STATUS      ENGINE VERSION
+uqw8jlf34krhkevrkq6tfi0k3 *   sw0                 Ready               Active              Leader              19.03.5
+qanpoexi6gqx9bk01e0wry0se     sw1                 Ready               Active                                  19.03.5
+ltkdrao7zjxhrxtlocma4gsyt     sw2                 Ready               Active                                  19.03.5
+```
+8. Создаю сервис визуализации кластера (см. п.2 [тут](https://dotsandbrackets.com/quick-intro-docker-swarm-mode-ru/)):
+```
+docker service create \
+	--name=viz \
+	--publish=8080:8080 \
+	--constraint=node.role==manager \
+	--mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+	dockersamples/visualizer
+```
+Просматривать что происходит в кластере можно теперь по ссылке:
+```
+http://10.50.10.10/
+```
+
+### Stack
+- Сервисы и их зависимости объединяются в Stack<br>
+- Stack описываю в формате docker-compose (YML)<br>
+- Управляется стек с помощью команд:
+```
+docker stack deploy/rm/services/ls STACK_NAME
+```
+- Данная команда не поддерживает переменные окружения .env, для этого нужно использовать следующую запись:
+```
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+```
+9. Запускаю приложения с [примера](docker/example/12):
+```
+cd ./docker/example/12
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+```
+Смотрю состояние стека:
+```
+docker stack services DEV
+```
+Вижу такой ответ (своданая информация по сервисам, а не по контейнерам):
+```shell
+ID                  NAME                MODE                REPLICAS            IMAGE                 PORTS
+dmmj8pngbj43        DEV_ui              replicated          1/1                 chromko/ui:1.0        *:9292->9292/tcp
+s54n0nm06d65        DEV_post            replicated          1/1                 chromko/post:1.0      
+wbxzxavu7ntk        DEV_post_db         replicated          1/1                 mongo:3.2             
+y6xhj09k7c4c        DEV_comment         replicated          1/1                 chromko/comment:1.0   
+```
+В визуализаторе видно куда разместились контейнеры в кластере.
+
+После чего удаляю сборку:
+```
+docker stack rm DEV
+```
+
+### Labels
+Ограничения размещения определяются с помощью логических действий  со значениями label-ов (медатанных) нод и docker-engine’ов.<br>
+Обращение к встроенным label’ам нод - node.*<br>
+Обращение к заданным вручную label’ам нод - node.labels*<br>
+Обращение к label’ам engine - engine.labels.*<br>
+
+Примеры:
+- node.labels.reliability == high
+- node.role != manager
+- engine.labels.provider == google
+
+1. Предположим, что нода sw0 надежнее и дороже, чем worker-ноды поэтому добавлю label к ноде:
+```
+docker node update --label-add reliability=high sw0
+```
+Просмотреть label к ноде:
+```
+docker node ls -q | xargs docker node inspect   -f '{{ .ID }} [{{ .Description.Hostname }}]: {{ .Spec.Labels }}'
+```
+
+### Размещение сервисов
+2. Укажу каким сервисам на какой ноде работать, для чего:<br>
+- Помещу на sw0 (как на наиболее надежную) базу дописав в ***docker-compose.yml***:
+```shell
+...
+    image: mongo:3.2
+    deploy:
+      placement:
+        constraints:
+          - node.labels.reliability == high
+... 
+```
+- Каждому сервису (ui, post, comment) добавлю placement чтобы не перегружать manager с помощью label node.role:
+```shell
+...
+    image: ${USERNAME}/ui:1.0
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+...
+```
+3. Запуск сборки:
+```
+cd ./docker/example/13
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+```
+Проверка:
+```
+docker stack ps DEV
+```
+Ответ:
+```shell
+ID                  NAME                IMAGE                 NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+qeu3qfs5ej8m        DEV_comment.1       chromko/comment:1.0   sw1                 Running             Running 2 minutes ago                       
+n9w9206zeq7t        DEV_ui.1            chromko/ui:1.0        sw2                 Running             Running 2 minutes ago                       
+jonpcvxco153        DEV_post_db.1       mongo:3.2             sw0                 Running             Running 2 minutes ago                       
+v12tjsbzvt4f        DEV_post.1          chromko/post:1.0      sw1                 Running             Running 2 minutes ago                       
+```
+Отобразились 4 задачи. Как видно в поле Node и визуализаторе (http://10.50.10.10/) задачи размещены согласно наложенным условиям:<br>
+- mongo - на manager;<br>
+- ui,post,comment - на worker-нодах.<br>
+
+4. Удаляю сборку:
+```
+docker stack rm DEV
+```
+
+### Масштабирование сервисов
+Для горизонтального масшатбирования и большей отказоустойчивости запустим микросервисы в нескольких экземплярах.<br>
+Существует 2 варианта запуска:<br>
+- replicated mode - запустить определенное число задач (default);<br>
+- global mode - запустить задачу на каждой ноде.
+
+<b>!!! Нельзя</b> заменить replicated mode на global mode ( и обратно) без удаления сервиса.
+
+#### Replicated mode
+1. Каждому сервису (ui, post, comment) добавлю Replicated mode в количестве 2-х экземпляров:
+```shell
+...
+    image: ${USERNAME}/ui:1.0
+    deploy:
+	  mode: replicated
+	  replicas: 2
+...
+```
+2. Запуск сборки:
+```
+cd ./docker/example/14
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+```
+3. Проверка:
+```
+docker stack services DEV
+```
+``` shell
+ID                  NAME                MODE                REPLICAS            IMAGE                 PORTS
+90v3na3my14e        DEV_ui              replicated          2/2                 chromko/ui:1.0        *:9292->9292/tcp
+mtepcefhv7x5        DEV_post            replicated          2/2                 chromko/post:1.0      
+pamvh44fkjcb        DEV_post_db         replicated          1/1                 mongo:3.2             
+r9ijqi5xrq39        DEV_comment         replicated          2/2                 chromko/comment:1.0   
+```
+Сервисы распределились равномерно по кластеру (стратегия spread) хорошо видно в визуализаторе, и в выводе команды:
+```
+docker stack ps DEV
+```
+``` shell
+ID                  NAME                IMAGE                 NODE                DESIRED STATE       CURRENT STATE           ERROR               PORTS
+i0bzgp095e3m        DEV_post_db.1       mongo:3.2             sw0                 Running             Running 2 minutes ago                       
+q1117b2npu4x        DEV_post.1          chromko/post:1.0      sw2                 Running             Running 2 minutes ago                       
+w6bxsw1u4xa1        DEV_comment.1       chromko/comment:1.0   sw1                 Running             Running 2 minutes ago                       
+pb5ff4owzcj8        DEV_ui.1            chromko/ui:1.0        sw2                 Running             Running 2 minutes ago                       
+i20nd4rbh5hu        DEV_post.2          chromko/post:1.0      sw1                 Running             Running 2 minutes ago                       
+rbqq9mdfs63l        DEV_comment.2       chromko/comment:1.0   sw2                 Running             Running 2 minutes ago                       
+7sccrn8agtg4        DEV_ui.2            chromko/ui:1.0        sw1                 Running             Running 2 minutes ago                       
+```
+4. Можно управлять количеством запускаемых сервисов в “на лету”:
+```
+docker service scale DEV_ui=3
+```
+Или
+```
+docker service update --replicas 3 DEV_post
+```
+Выключить все задачи сервиса:
+```
+docker service update --replicas 0 DEV_ui
+```
+5. Удаляю сборку:
+```
+docker stack rm DEV
+```
+
+#### Global mode
+Для задач мониторинга кластера нам понадобится запустить node_exporter (только в 1-м экземпляре). Использую global mode.
+
+1. Добавляю в ***docker-compose.yml***:
+```shell
+...
+  node-exporter:
+    image: prom/node-exporter:v0.15.2
+	deploy:
+	  mode: global
+    user: root
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points="^/(sys|proc|dev|host|etc)($$|/)"'
+    networks:
+      - front_net
+      - back_net
+...
+```
+2. Запуск сборки:
+```
+cd ./docker/example/15
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+```
+3. Проверка:
+```
+docker stack services DEV
+docker stack ps DEV
+```
+
+#### Работа с контейнерами
+Внутренний механизм Routing mesh обеспечивает балансировку запросов пользователей между контейнерами UI-сервиса.<br>
+1) В независимости от того, на какую ноду прийдет запрос, мы попадем на приложение (которое было опубликовано).<br>
+2) Каждое новое TCP/UDP-соединение будет отправлено на следующий endpoint (round-robin балансировка).
+
+Смотрю, где запущен UI-сервис:
+```
+docker service ps DEV_ui
+```
+```shell
+ID                  NAME                IMAGE               NODE                DESIRED STATE       CURRENT STATE            ERROR               PORTS
+ax02e85usquk        DEV_ui.1            chromko/ui:1.0      sw1                 Running             Running 18 minutes ago                       
+iv283e3ld9yh        DEV_ui.2            chromko/ui:1.0      sw2                 Running             Running 18 minutes ago                       
+```
+Если заходить в браузере на сайт приложения (http://10.50.10.10:9292/) (с интервалом в 10-15с) или обновляя по Ctrl+F5, можно заметить что ID контейнеров меняется.<br>
+ID не сходятся, потому что рамках кластера минимальная единица - это задача (task). Контейнер - лишь конкретный экземпляр задачи.<br>
+ID контейнера можно посмотреть задав в фильтре имя контейнера (--filter "<b>Name=DEV_ui.1</b>"):
+```
+docker inspect $(docker stack ps DEV -q --filter "Name=DEV_ui.1") --format "{{.Status.ContainerStatus.ContainerID}}"
+```
+4. Удаляю сборку:
+```
+docker stack rm DEV
+```
+
+### Rolling Update
+Чтобы обеспечить минимальное время простоя приложения во время обновлений (zero-downtime), сконфигурируем параметры деплоя параметром update_conﬁg:
+```
+service:
+    image: svc
+    deploy:
+      update_config:
+        parallelism: 2 
+        delay: 5s
+        failure_action: rollback
+        monitor: 5s
+        max_failure_ratio: 2
+        order: start-first
+```
+где: <br>
+1) parallelism - cколько контейнеров (группу) обновить одновременно <br>
+2) delay - задержка между обновлениями групп контейнеров <br>
+3) order - порядок обновлений (сначала убиваем старые и запускаем новые или наоборот) (только в compose 3.4) <br>
+
+Обработка ошибочных ситуаций: <br>
+4) failure_action - что делать, если при обновлении возникла ошибка <br>
+5) monitor - сколько следить за обновлением, пока не признать его удачным или ошибочным <br>
+6) max_failure_ratio - сколько раз обновление может пройти с ошибкой перед тем, как перейти к failure_action <br>
+
+1. <i> Допустим </i> приложение UI должно обновляться группами по 1 контейнеру с разрывом в 5 секунд. <br>
+В случае возникновения проблем деплой останавливается (Старые и новые версии работают вместе). <br>
+```
+...
+  ui:
+    image: ${USERNAME}/ui:1.0
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        delay: 5s
+        parallelism: 1
+        failure_action: pause
+...
+```
+Что делать, если обновление прошло с ошибкой?<br>
+Отвечает параметр failure_action имеющий следующие параметры:<br>
+- pause (default) -  приостановить обновление<br>
+- rollback - откатить все задачи на предыдущую версию<br>
+- continue - продолжить обновление<br>
+
+!!! Если перезаписать тег работающего приложения, то откатить его не получится!!! Приложение будет сломано!!!
+
+2. Запуск сборки:
+```
+cd ./docker/example/16
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+```
+3. Проверка:
+```
+docker service ps DEV_ui
+```
+4. Удаляю сборку:
+```
+docker stack rm DEV
+```
+
+### Resources limits
+С помощью resources limits описываем максимум потребляемых приложениями CPU и памяти. <br>
+Это обеспечит:<br>
+- представление о том, сколько ресурсов нужно приложению;<br>
+- контроль Docker за тем, чтобы никто не превысил заданного порога (с помощью cgroups);<br>
+- защиту сторонних приложений от неконтролируемого расхода ресурса контейнером. <br>
+
+1. Ограничу UI, максимум 150М памяти и 25% процессорного времени:
+```
+...
+  ui:
+    image: ${USERNAME}/ui:1.0
+    deploy:
+...
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 150M
+...
+```
+2. Запуск сборки:
+```
+cd ./docker/example/17
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+```
+3. Проверка:
+```
+docker service ps DEV_ui
+```
+4. Удаляю сборку:
+```
+docker stack rm DEV
+```
+
+### Restart policy
+Если контейнер в рамках задачи завершит свою работу, то планировщик Swarm автоматически запустит новый (даже если он вручную остановлен).<br>
+Можно поменять это поведение (для целей диагностики, например) так, чтобы контейнер перезапускался только при падении контейнера (on-failure).<br>
+
+1. По-умолчанию контейнер будет бесконечно перезапускаться. Это может оказать сильную нагрузку на машину в целом. Ограничим число попыток перезапуска 3-мя с интервалом в 3 секунды.
+```
+...
+  ui:
+    image: ${USERNAME}/ui:1.0
+    deploy:
+...
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+        delay: 3s
+...
+```
+2. Запуск сборки:
+```
+cd ./docker/example/18
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.yml config 2>/dev/null) DEV
+```
+3. Проверка:
+```
+docker service ps DEV_ui
+```
+4. Удаляю сборку:
+```
+docker stack rm DEV
+```
+
+### docker-compose.infra.yml
+Помимо сервисов приложения, может присутствовать инфраструктура, описанная в compose-файле (prometheus, node-exporter, grafana …)
+Нужно выделить ее в отдельный compose-файл. С названием  docker-compose.infra.yml.
+В него выносится все что относится к этим сервисам (volumes, services).
+Запускать приложение вместе с инфрой можно командой:
+```
+docker stack deploy --compose-file=<(docker-compose -f docker-compose.infra.yml -f docker-compose.yml config 2>/dev/null)  DEV
+```
+
+ </p>
+ </details>
+
+
+
+</p>
+</details>
+ 
