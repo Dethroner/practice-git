@@ -2752,9 +2752,9 @@ docker stack rm DEV
 ```
 
 ### docker-compose.infra.yml
-Помимо сервисов приложения, может присутствовать инфраструктура, описанная в compose-файле (prometheus, node-exporter, grafana …)
-Нужно выделить ее в отдельный compose-файл. С названием  docker-compose.infra.yml.
-В него выносится все что относится к этим сервисам (volumes, services).
+Помимо сервисов приложения, может присутствовать инфраструктура, описанная в compose-файле (prometheus, node-exporter, grafana …)<br>
+Нужно выделить ее в отдельный compose-файл. С названием  docker-compose.infra.yml.<br>
+В него выносится все что относится к этим сервисам (volumes, services).<br>
 Запускать приложение вместе с инфрой можно командой:
 ```
 docker stack deploy --compose-file=<(docker-compose -f docker-compose.infra.yml -f docker-compose.yml config 2>/dev/null)  DEV
