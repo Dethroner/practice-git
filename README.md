@@ -2762,9 +2762,145 @@ docker stack deploy --compose-file=<(docker-compose -f docker-compose.infra.yml 
 
  </p>
  </details>
+ <details><summary>15.2 Kubernetes.</summary>
+ <p>
+ 
+## Kubernetes:
+Что такое [Kubernetes](https://ru.wikipedia.org/wiki/Kubernetes) + общая [информация](https://habr.com/ru/post/258443/).
+
+В данном задании сделано:
+- Подготовка окружения
+
+### Подготовка окружения
+#### Одноузловой кластер с помощью Minikube
+
+Подготовка подразумевает установку некоторых инструментов:<br>
+- [VirtualBox](https://www.virtualbox.org/wiki/Downloads) (если не установлен);<br>
+- [Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) (интерфейс командной строки для Kubernetes);<br>
+- [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/).<br>
+
+В Windows:<br>
+- скачать [Kubectl](https://storage.googleapis.com/kubernetes-release/release/v1.17.0/bin/windows/amd64/kubectl.exe) и [Minikube](https://storage.googleapis.com/minikube/releases/latest/minikube-windows-amd64.exe);<br>
+- переименовываю в minikube.exe и добавить в PATH-переменную окружения (или в папку, которая уже в ней прописана).<br>
+!!! Я просто скинул их в c:\windows
+Проверяю работу:
+```
+kubectl version
+```
+Вижу:
+```
+Client Version: version.Info{Major:"1", Minor:"17", GitVersion:"v1.17.0", GitCommit:"70132b0f130acc0bed193d9ba59dd186f0e634cf", GitTreeState:"clean", BuildDate:"2019-12-07T21:20:10Z", GoVersion:"go1.13.4", Compiler:"gc", Platform:"windows/amd64"}
+```
+2. Запускаю Minukube-кластер:
+```
+minikube start
+```
+Вижу:
+```
+* minikube v1.6.2 on Microsoft Windows 10 Enterprise 10.0.18363 Build 18363
+* Selecting 'virtualbox' driver from existing profile (alternates: [])
+* Tip: Use 'minikube start -p <name>' to create a new cluster, or 'minikube delete' to delete this one.
+...
+```
+PS. Если нужна конкретная версия kubernetes, указывайте флаг --kubernetes-version <version> (v1.17.0).<br> 
+PPS.По-умолчанию используется VirtualBox. Если у вас другой гипервизор, то ставьте флаг --vm-driver=<hypervisor>.
+
+Minikube-кластер развернут. При этом автоматически был настроен конфиг kubectl.
+
+!!! Если во время развертывания произошли ошибки, можно попробовать разобраться добавив флаг ***--alsologtodtderr***, тобы сделать их более подробными.
+
+Таким образом в процессе поднятия кластера было выпогенно следующее:<br>
+- запуск ВМ VirtualBox;<br>
+- созданы сертификаты для локального системы и ВМ;<br>
+- загружен образ;<br>
+- установлено соединение между локальной системой и ВМ;<br>
+- запущен локальный клвстер Kubernetes внутри ВМ;<br>
+- настроен кластер;<br>
+- запущены все компоненты панели управления Kubernetes;<br>
+- настроена утилита kubectl, чтобы она могла общаться с кластером.
+
+Проверяю кластер:<br>
+Подключаюсь к ВМ по ssh:
+```
+minikube ssh
+```
+Вижу приветствие в псевдографике.
+
+Проверяю состояние кластера:
+```
+kubectl cluster-info
+```
+```
+Kubernetes master is running at https://192.168.99.101:8443
+KubeDNS is running at https://192.168.99.101:8443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+```
+Главный узел Kubernetes работает по адресу https://192.168.99.101:8443 <br>
+KubeDNS находится по адресу https://192.168.99.101:8443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy <br>
+Для отладки и диагностики можно использовать команду:
+```
+kubectl cluster-info dump
+```
+Проверяю узлы кластера
+```
+kubectl get nodes
+```
+```
+NAME       STATUS    ROLES     AGE       VERSION
+minikube   Ready     <none>    30m        1.17.0
+```
+Итак, имеется один узел с именем minikube. Более подробную информацию можно получить введя:
+```
+kubectl descibe node minikube
+```
+Kubernetes имеет веб-интерфейс, который разворачивается внутри пода. Чтобы его запустить выполнию:
+```
+minikube dashboard
+```
+Браузеры от Microsoft невсегда могут отобразить [minikube](https://192.168.99.101:30000), лучше воспользоваться каким-нибудь сторонним.
+
+#### Создание кластеров в облаке
+Есть хорошая инструкция по ручной установке основных компонентов Kubernetes-кластера в GCP: [Kubernetes The Hard way](https://github.com/kelseyhightower/kubernetes-the-hard-way), разработанная инженером Google Kelsey Hightower.
+
+#### Многоузловой кластер с помощью kubeadm
+Kubeadm работает на готовом устройстве (физическом или виртуальном). Перед созданием кластера нужно подготовить несколько ВМ и установить базовое ПО, такое как Docker, kubelet, kubeadm и kubectl (последняя утилита нужна только на ведущем узле).
+
+1. Запускаю развертывание инфраструктуры:
+```
+cd vagrant/examples/6
+vagrant init
+vagrant up
+```
+2. После запуска инфраструктуры подлючаюсь к ВМ:
+```
+ssh -i ~/.ssh/appuser appuser@10.50.10.10
+```
+3. Проверяю состояние кластера:
+```
+kubectl cluster-info
+```
+```
+Kubernetes master is running at https://10.50.10.10:6443
+KubeDNS is running at https://10.50.10.10:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+```
+```
+kubectl get nodes
+```
+```
+NAME         STATUS   ROLES    AGE     VERSION
+k8s-master   Ready    master   83m     v1.17.0
+node-1       Ready    <none>   3m50s   v1.17.0
+node-2       Ready    <none>   39m     v1.17.0
+node-3       Ready    <none>   47m     v1.17.0
+```
 
 
 
+ </p>
+ </details>
 </p>
 </details>
  

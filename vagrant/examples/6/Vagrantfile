@@ -1,0 +1,47 @@
+IMAGE_NAME = "generic/ubuntu1804"
+N = 3
+
+Vagrant.configure("2") do |config|
+
+    config.vm.provider "virtualbox" do |v|
+        v.memory = 1024
+        v.cpus = 2
+    end
+      
+    config.vm.define "k8s-master" do |master|
+        master.vm.box = IMAGE_NAME
+        master.vm.network "private_network", ip: "10.50.10.10"
+        master.vm.hostname = "k8s-master"
+		master.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+		master.vm.provision :shell, path: "./files/user-slave.sh", args: "appuser"
+		master.vm.provision :shell, inline: "echo 'KUBELET_EXTRA_ARGS=--node-ip=10.50.10.10' | sudo tee /etc/default/kubelet"
+		
+    end
+
+    (1..N).each do |i|
+        config.vm.define "node-#{i}" do |node|
+            node.vm.box = IMAGE_NAME
+            node.vm.network "private_network", ip: "10.50.10.#{i + 20}"
+            node.vm.hostname = "node-#{i}"
+			node.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+			node.vm.provision :shell, path: "./files/user-slave.sh", args: "appuser"
+			node.vm.provision :shell, inline: "echo 'KUBELET_EXTRA_ARGS=--node-ip=10.50.10.#{i + 20}' | sudo tee /etc/default/kubelet"
+        end
+    end
+	
+	config.vm.define "ansible" do |ansible|
+		ansible.vm.box = IMAGE_NAME
+		ansible.vm.network "private_network", ip: "10.50.10.5"
+        ansible.vm.hostname = "ansible"
+		
+		ansible.vm.provider "virtualbox" do |v|
+			v.memory = 512
+			v.cpus = 1
+		end
+		
+		ansible.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+		ansible.vm.provision :shell, path: "./files/user.sh", args: "appuser"
+		ansible.vm.provision :shell, path: "./files/ansible.sh"
+		ansible.vm.provision :shell, inline: "ansible-playbook /home/appuser/ansible/master-playbook.yml && ansible-playbook /home/appuser/ansible/node-playbook.yml"
+	end
+end
