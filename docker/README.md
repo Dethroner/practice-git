@@ -62,9 +62,6 @@ docker exec -it <mycontainer> bash
 ### Список образов:
 docker images
 
-### Удаление образа:
-docker rmi nginx
-
 ### Создание образов
 docker build .
 docker build github.com/creack/docker-firefox
@@ -136,3 +133,19 @@ docker system prune
 
 ### По умолчанию для Docker 17.06.1+ тома не удаляются. Чтобы удалились и они тоже:
 docker system prune --volumes
+
+## Версионирование и push образа
+1. Сборка образа.
+docker build -t test/post:1.0 ./post-py
+
+2. Поиск IMAGE ID.
+docker images
+
+3. Смена тегов на имя репозитория с dockerhub
+docker tag f8a53bf94328 dethroner/post:latest
+
+4. Авторизоваться в Docker Hub.
+docker login
+
+5. Выгрузить образ в репозиторий.
+docker push dethroner/post

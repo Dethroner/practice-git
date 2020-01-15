@@ -81,11 +81,6 @@
         - kubeadm 
         - kubectl
 
-  - name: Configure node ip
-    lineinfile:
-      path: /etc/default/kubelet
-      line: KUBELET_EXTRA_ARGS=--node-ip=10.50.10.10
-
   - name: Restart kubelet
     service:
       name: kubelet
@@ -94,7 +89,7 @@
       
   - name: Initialize the Kubernetes cluster using kubeadm
     become: true
-    command: kubeadm init --apiserver-advertise-address="10.50.10.10" --apiserver-cert-extra-sans="10.50.10.10"  --node-name k8s-master --pod-network-cidr=10.50.0.0/16
+    command: kubeadm init --apiserver-advertise-address="10.50.10.10" --node-name k8s-master --pod-network-cidr=10.50.0.0/16
 
   - name: Setup kubeconfig for appuser user
     become: true
@@ -106,7 +101,16 @@
 
   - name: Install calico pod network
     become: false
-    command: kubectl apply -f https://docs.projectcalico.org/v3.10/getting-started/kubernetes/installation/hosted/calico.yaml
+    # command: kubectl apply -f https://docs.projectcalico.org/v3.11/getting-started/kubernetes/installation/hosted/calico.yaml
+    command: "{{ item }}"
+    with_items:
+     - curl https://docs.projectcalico.org/v3.11/manifests/calico.yaml -O
+    # - export POD_CIDR="10.50.0.0/16"
+    # - sed -i -e "s?192.168.0.0/16?$POD_CIDR?g" calico.yaml
+     - sed -i -e "s?192.168.0.0/16?10.50.0.0/16?g" calico.yaml
+     - kubectl apply -f calico.yaml
+    args:
+     chdir: /tmp
 
   - name: Generate join command
     command: kubeadm token create --print-join-command

@@ -2770,6 +2770,7 @@ docker stack deploy --compose-file=<(docker-compose -f docker-compose.infra.yml 
 
 В данном задании сделано:
 - Подготовка окружения
+- Запуск приложения в локальном кластере
 
 ### Подготовка окружения
 #### Одноузловой кластер с помощью Minikube
@@ -2854,15 +2855,53 @@ minikube   Ready     <none>    30m        1.17.0
 ```
 kubectl descibe node minikube
 ```
-Kubernetes имеет веб-интерфейс, который разворачивается внутри пода. Чтобы его запустить выполнию:
+Minikube также имеет в комплекте несколько стандартных аддонов (расширений) для Kubernetes (kube-dns, dashboard, monitoring,…). Каждое расширение - это такие же PODы и сервисы, какие создавались нами, только они еще общаются с API самого Kubernetes.<br>
+Посмотрел список расширений:
 ```
+minikube dashboard
+```
+```shell
+- addon-manager: enabled
+- dashboard: disabled
+- default-storageclass: enabled
+- efk: disabled
+- freshpod: disabled
+- gvisor: disabled
+- helm-tiller: disabled
+- ingress: disabled
+- ingress-dns: disabled
+- logviewer: disabled
+- metrics-server: disabled
+- nvidia-driver-installer: disabled
+- nvidia-gpu-device-plugin: disabled
+- registry: disabled
+- registry-creds: disabled
+- storage-provisioner: enabled
+- storage-provisioner-gluster: disabled
+```
+Dashboard - это веб-интерфейс для работы с kubernetes. В целом, он отображает всю ту же информацию, которую можно достать с помощью kubectl.<br>
+В самом Dashboard можно: 
+- отслеживать состояние кластера и рабочих нагрузок в нем 
+- создавать новые объекты (загружать YAML-файлы) 
+- Удалять и изменять объекты (кол-во реплик, yaml-файлы) 
+- отслеживать логи в Pod-ах 
+- при включении Heapster-аддона смотреть нагрузку на Pod-ах 
+- и т.д.<br>
+Запустил веб-интерфейс:
+```
+minikube addons enable dashboard
 minikube dashboard
 ```
 Браузеры от Microsoft невсегда могут отобразить [minikube](https://192.168.99.101:30000), лучше воспользоваться каким-нибудь сторонним.
 
-#### Создание кластеров в облаке
-Есть хорошая инструкция по ручной установке основных компонентов Kubernetes-кластера в GCP: [Kubernetes The Hard way](https://github.com/kelseyhightower/kubernetes-the-hard-way), разработанная инженером Google Kelsey Hightower.
-
+Останавливаю minikube:
+```
+minikube stop
+```
+И удаляю созданную ВМ:
+```
+minikube delete
+```
 #### Многоузловой кластер с помощью kubeadm
 Kubeadm работает на готовом устройстве (физическом или виртуальном). Перед созданием кластера нужно подготовить несколько ВМ и установить базовое ПО, такое как Docker, kubelet, kubeadm и kubectl (последняя утилита нужна только на ведущем узле).
 
@@ -2896,6 +2935,264 @@ node-1       Ready    <none>   3m50s   v1.17.0
 node-2       Ready    <none>   39m     v1.17.0
 node-3       Ready    <none>   47m     v1.17.0
 ```
+#### Создание кластеров в облаке
+Есть хорошая инструкция по ручной установке основных компонентов Kubernetes-кластера в GCP: [Kubernetes The Hard way](https://github.com/kelseyhightower/kubernetes-the-hard-way), разработанная инженером Google Kelsey Hightower.
+
+### Запуск приложения в одноузловом кластере с помощью Minikube
+1. Запускаю кластер minikube выделив под ВМ 4 CPU и 8 Гб RAM:
+```
+minikube start --vm-driver=virtualbox --cpus 4 --memory 8192
+```
+Проверяю, что все поднялось:
+```
+minikube status
+```
+2. Запустил 3 реплики сервиса ui (указав файл [ui-deployment.yml](k8s/examples/1/ui-deployment.yml))
+```
+cd k8s/examples/1/
+kubectl apply -f ui-deployment.yml
+```
+Проверяю, что деплоймент запустился и существует 3 реплики сервиса ui:
+```
+kubectl get deployment
+```
+```shell
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+ui        3/3     3            3           61m
+```
+3. Пробрасываю порт на локальную машину для теста (напримере первого пода), но сначала нахожу ID подов по селектору:
+```
+kubectl get pods --selector component=ui
+```
+```shell
+NAME                 READY   STATUS             RESTARTS   AGE
+ui-5fbcbf86d-k6p28   1/1     Running            0          65m
+ui-5fbcbf86d-wpp62   1/1     Running            0          65m
+ui-5fbcbf86d-zqj4g   1/1     Running            0          65m
+```
+```
+kubectl port-forward ui-5fbcbf86d-k6p28 8080:9292
+```
+Захожу в браузере на http://localhost:8080 и вижу UI сервис.
+
+4. По аналогии запускаю comment и post:
+```
+kubectl apply -f comment-deployment.yml
+kubectl apply -f post-deployment.yml
+```
+Проверяю, что все запустилось:
+```
+kubectl get deployment
+```
+```shell
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+comment   3/3     3            3           73m
+post      3/3     3            3           72m
+ui        3/3     3            3           72m
+```
+Тетсирую работу пробросив порты:
+```
+kubectl get pods
+```
+```shell
+NAME                       READY   STATUS             RESTARTS   AGE
+comment-77857f8dd8-5kck6   1/1     Running            0          74m
+comment-77857f8dd8-n7jtv   1/1     Running            0          74m
+comment-77857f8dd8-zzhrw   1/1     Running            0          74m
+post-988799f76-24ptb       1/1     Running            0          74m
+post-988799f76-jnzcb       1/1     Running            0          74m
+post-988799f76-pm274       1/1     Running            0          74m
+ui-5fbcbf86d-k6p28         1/1     Running            0          74m
+ui-5fbcbf86d-wpp62         1/1     Running            0          74m
+ui-5fbcbf86d-zqj4g         1/1     Running            0          74m
+```
+```
+kubectl port-forward comment-77857f8dd8-5kck6 9292:9292
+```
+Захожу в браузере на http://localhost:9292/healthcheck и вижу ответ.
+```
+kubectl port-forward post-988799f76-24ptb 5000:5000
+```
+Захожу в браузере на http://localhost:5000/healthcheck и вижу ответ.
+
+5. Разворачиваю БД на mongo, примонтировав стандартный Volume для хранения данных вне контейнера:
+```
+kubectl apply -f mongo-deployment.yml
+```
+Проверяю:
+```
+kubectl get pods
+```
+```shell
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+comment-77857f8dd8-5kck6   1/1     Running            0          84m
+comment-77857f8dd8-n7jtv   1/1     Running            0          84m
+comment-77857f8dd8-zzhrw   1/1     Running            0          84m
+mongo-6fbb94b746-lbt8x     1/1     Running            0          84m
+post-988799f76-24ptb       1/1     Running            0          84m
+post-988799f76-jnzcb       1/1     Running            0          84m
+post-988799f76-pm274       1/1     Running            0          84m
+ui-5fbcbf86d-k6p28         1/1     Running            0          84m
+ui-5fbcbf86d-wpp62         1/1     Running            0          84m
+ui-5fbcbf86d-zqj4g         1/1     Running            0          84m
+```
+#### Использование сервисов
+В текущем состоянии приложение не будет работать, т.к. его компоненты ещё не знают как найти друг друга.<br>
+Для связи компонент между собой и с внешним миром используется объект Service - абстракция, которая определяет набор POD-ов (Endpoints) и способ доступа к ним.<br>
+
+6. Для связи ui с post и comment создаю и запускаю им по объекту Service:
+```
+kubectl apply -f ui-service.yml
+kubectl apply -f post-service.yml
+kubectl apply -f comment-service.yml
+```
+Post и Comment также используют mongo, следовательно ей тоже нужен объект Service:
+```
+kubectl apply -f mongodb-service.yml
+```
+Проверяю log:
+```
+kubectl logs comment-77857f8dd8-5kck6
+```
+Вижу ошибки типа:
+```
+DEBUG -- : MONGODB | Server comment_db:27017 initializing.
+DEBUG -- : MONGODB | getaddrinfo: Name does not resolve
+```
+Приложение ищет совсем другой адрес: comment_db, а не mongodb. <br>
+Аналогично и сервис post ищет post_db.<br>
+Для решения этой проблемы, создаю Service для БД comment (файл comment-mongodb-service.yml).<br>
+Так же изменил деплоймент для mongo, добавив туда теги `comment-db:"true"`, а в деплойменте сервиса comment добавил переменную окружения с именем БД.<br>
+
+Аналогичным образом поступил с сервисом post, добавив для него лейблы в деплоймент mongo, создав отдельный сервис и прописав переменную окружения в деплоймент post. Имя базы должно быть post-db.
+
+Измененные конфиги лежат [тут]((k8s/examples/2).<br>
+Для начала убираю все предыдущие объекты:
+```
+cd ..
+kubectl delete -f ./1
+```
+Запускаю новые:
+```
+kubectl apply -f ./2
+```
+Повторяю п.3 и проверяю что приложение и все его компоненты работают.
+
+7. По-умолчанию все сервисы имеют тип ClusterIP - это значит, что сервис распологается на внутреннем диапазоне IP-адресов кластера. Снаружи до него нет доступа.<br>
+Чтобы обеспечить доступ к ui-сервису снаружи, понадобится для UI-компоненты Service типа **NodePort**.
+
+Тип NodePort - на каждой ноде кластера открывает порт из диапазона 30000-32767  и переправляет трафик с этого порта на тот, который указан в targetPort Pod (похоже на стандартный expose в docker).
+
+Теперь на сервис можно попасть по пути <Node-IP>:<NodePort> <br>
+Также можно указать конкретный NodePort (но все равно из диапазона).
+
+Т.е. в описании service:<br> 
+- <b>NodePort</b> - для доступа снаружи кластера; <br>
+- <b>port</b> - для доступа к сервису изнутри кластера.
+
+Измененные конфиги лежат [тут]((k8s/examples/3).<br>
+Убираю все предыдущие объекты:
+```
+kubectl delete -f ./2
+```
+Запускаю новые:
+```
+kubectl apply -f ./3
+```
+Minikube может перенаправлять на web-странцы с сервисами которые были помечены типом NodePort.<br>
+Смотрю на список сервисов:
+```
+minikube service list
+```
+```shell
+|-------------|------------|-----------------------------|-----|
+|  NAMESPACE  |    NAME    |         TARGET PORT         | URL |
+|-------------|------------|-----------------------------|-----|
+| default     | comment    | No node port                |     |
+| default     | comment-db | No node port                |     |
+| default     | kubernetes | No node port                |     |
+| default     | post       | No node port                |     |
+| default     | post-db    | No node port                |     |
+| default     | ui         | http://192.168.99.108:30491 |     |
+| kube-system | kube-dns   | No node port                |     |
+|-------------|------------|-----------------------------|-----|
+```
+Зайти на сервис можно по указанному адресу - http://192.168.99.108:30491 <br>
+Также minikube может выдавать web-странцы с сервисами которые были помечены типом NodePort:
+```
+minikube service ui
+```
+введенная команда выдаст общую информацию и откроет в браузере тот же адрес, предварительно об этом оповестив :
+```shell
+|-----------|------|-------------|-----------------------------|
+| NAMESPACE | NAME | TARGET PORT |             URL             |
+|-----------|------|-------------|-----------------------------|
+| default   | ui   |             | http://192.168.99.108:30491 |
+|-----------|------|-------------|-----------------------------|
+* Opening service default/ui in default browser...
+```
+Убираю все предыдущие объекты:
+```
+kubectl delete -f ./3
+```
+#### Использование Namespace в kubernetes
+**Namespace** - это, по сути, виртуальный кластер внутри кластера кубернетиса. Неймспейсы можно использовать для создания различных окружений внутри кластера или же для какого-либо логического разделения работающих сервисов. Внутри каждого такого кластера находятся свои объекты (POD-ы, Service-ы, Deployment-ы и т.д.), кроме объектов, общих на все namespace-ы (nodes, ClusterRoles, PersistentVolumes).
+
+В разных нейспейсах могут находиться объекты с одинковым именем, но в рамках одного namespace имена объектов должны быть уникальны.
+
+По-умолчанию в кластере кубернетес уже существует 3 неймспейса:
+- default - Для объектов для которых не определен другой неймспейс;
+- kube-system - для объектов созданных кубером и для управления им;
+- kube-public - для объектов к которым нужен доступ из любой точки кластера.
+
+##### Создание среды для разработки
+Отделяю среду для разработки от всего остального кластера, создав dev namespace.
+
+Описываю этот неймспейс в файле [dev-namespace.yml](k8s/examples/dev-namespace.yml)
+```
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+```
+Создаю dev namespace и запускаю в нем приложение:
+```
+kubectl apply -f dev-namespace.yml
+kubectl apply -n dev -f ./3
+```
+Проверяю результат:
+```
+kubectl get pods -n dev
+```
+Убираю все предыдущие объекты:
+```
+kubectl delete -f ./3 -n dev
+```
+Для возможности запуска по отдельным компонентам разнес их по соответвующим [папкам](k8s/examples/4).<br>
+Добавил информацию об окружении в контейнер, определив переменную окружения ENV в [ui-deployment.yml](k8s/examples/4/ui/ui-deployment.yml).<br>
+Запускаю и проверяю:
+```
+kubectl apply -n dev -f ./4/comment
+kubectl apply -n dev -f ./4/mongo
+kubectl apply -n dev -f ./4/post
+kubectl apply -n dev -f ./4/ui
+```
+Проверяю результат:
+```
+kubectl get pods -n dev
+minikube service ui -n dev
+```
+Теперь в заголовке UI отображается информация о среде в которой работает приложение.
+
+Таким образои было подготовлено и отлажено приложение в одноузловом кластере с помощью minikube. <br>
+Локальный кластер свою роль сыграл и больше не нужен, завершаю его работу:
+```
+minikube stop
+minikube delete
+```
+Теперь самое время запустить его на реальном кластере Kubernetes.
+
 
 
 
