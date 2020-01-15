@@ -226,6 +226,7 @@ self.assertEqual(1, 1)
 Авторизируемся в системе:
 ```
 gcloud init
+gcloud auth application-default login
 ```
 Создаём новый проект и переключаемся на него:
 ```
@@ -2771,6 +2772,7 @@ docker stack deploy --compose-file=<(docker-compose -f docker-compose.infra.yml 
 В данном задании сделано:
 - Подготовка окружения
 - Запуск приложения в локальном кластере
+- Запуск приложения на реальном кластере Kubernetes
 
 ### Подготовка окружения
 #### Одноузловой кластер с помощью Minikube
@@ -2935,8 +2937,28 @@ node-1       Ready    <none>   3m50s   v1.17.0
 node-2       Ready    <none>   39m     v1.17.0
 node-3       Ready    <none>   47m     v1.17.0
 ```
-#### Создание кластеров в облаке
+#### Создание кластера в облаке GCP вручную
 Есть хорошая инструкция по ручной установке основных компонентов Kubernetes-кластера в GCP: [Kubernetes The Hard way](https://github.com/kelseyhightower/kubernetes-the-hard-way), разработанная инженером Google Kelsey Hightower.
+
+#### Создание кластера в облаке GCP с помощью платформы Google Kubernetes Engine
+1. Захожу в gcloud console, иду в "Kubernetes Engine" -> "Кластеры".<br>
+2. Нажимаю "Создать кластер" и указываю следующие настройки кластера: 
+- Размер - 3
+- Версия кластера  - 1.13.11-gke.14 
+- Тип машины - g1-small небольшая машина (1,7 ГБ) (для экономии ресурсов) 
+- Размер загрузочного диска - 20 ГБ  (для экономии)
+- Размер - 3 
+- Базовая аутентификация - отключена 
+- Устаревшие права доступа - отключено 
+- Панель управления Kubernetes - отключено <br>
+3. Жму “Создать” и жду, пока поднимется кластер.<br>
+
+#### Развернуть кластер в облаке GCP через terraform (*)
+Поместил файлы конфигурации терраформа [тут](terraform/examples/9), для развертывания кластера kubernetes в GCP (используя Google Kubernetes Engine).
+
+Для полноценной работы, обязательно использовать версию провайдер > 2.3.0
+При развертывании кубернетис кластера через террформ с использованием GKE, сначала будет развернут кластер с дефолтными нодами, т.к. нельзя развернуть кластер без нод. После этого, дефолтный node-pool будет удален и вместо него создастся описаный в `google_container_node_pool` пул нод.
+Важно, что если в свойстве location кластера указать зону, то будет развернута только 1 мастер в указанной зоне. Если указать регион, то будет развернуто по экземпляру мастера в каждой зоне региона. Аналогичная ситуация со свойством location в пуле нод. Если указать зону, то в зоне будет развернуто указанной в `node_count` колличество нод. Но если указать регион, то в каждой зоне указанного региона будет развернуто колличество нод, указанное в `node_count`
 
 ### Запуск приложения в одноузловом кластере с помощью Minikube
 1. Запускаю кластер minikube выделив под ВМ 4 CPU и 8 Гб RAM:
@@ -3193,8 +3215,62 @@ minikube delete
 ```
 Теперь самое время запустить его на реальном кластере Kubernetes.
 
+### Запуск приложения на реальном кластере Kubernetes
+1. Создаю кластер в облаке GCP с помощью платформы Google Kubernetes Engine.
+```
+cd terraform/examples/9
+terraform init
+terraform apply
+```
+После создания кластера иду в gcloud console, иду в "Kubernetes Engine" -> "Кластеры" и жму кнопку "Подключится" и копирую команду подключения к кластеру. Затем ввожу ее в консоли ПК.<br>
+В результате в файл ~/.kube/config будут добавлены user, cluster и context для подключения к кластеру в GKE. Также текущий контекст будет выставлен для подключения к этому кластеру. <br>
+Проверяю:
+```
+kubectl config current-context
+```
+```shell
+gke_west-249106_europe-west1-b_standard-cluster-1
+```
+2. Запускаю приложение в GKE
+- Создаю dev namespace
+```
+cd k8s/examples
+kubectl apply -f dev-namespace.yml
+```
+- Запускаю деплой всех компонентов приложения в namespace dev:
+```
+kubectl apply -n dev -f ./4/comment
+kubectl apply -n dev -f ./4/mongo
+kubectl apply -n dev -f ./4/post
+kubectl apply -n dev -f ./4/ui
+```
+3. Открываю приложение для внешнего мира(terraform создает правило автоматически):
+3.1 иду в "Сеть VPC" -> "правила брандмауэра";
+3.2 жму "Создать правила брандмауэра" и настраиваю:
+- Название - произвольно, но понятно 
+- Целевые экземпляры - все экземпляры в сети 
+- Диапазоны IP-адресов источников  - 0.0.0.0/0
+- Протоколы и порты - Указанные протоколы и порты tcp:30000-32767
+3.3 жму "Создать"
+4. Ищу внешний IP-адрес любой ноды из кластера либо в веб-консоли, либо External IP в выводе: 
+```
+kubectl get nodes -o wide
+```
+```shell
+NAME                                                STATUS   ROLES    AGE   VERSION           INTERNAL-IP   EXTERNAL-IP     OS-IMAGE                             KERNEL-VERSION   CONTAINER-RUNTIME
+gke-standard-cluster-1-default-pool-b8d3a11d-82xr   Ready    <none>   29m   v1.13.11-gke.14   10.132.0.34   35.189.255.89   Container-Optimized OS from Google   4.14.138+        docker://18.9.7
+gke-standard-cluster-1-default-pool-b8d3a11d-8rqt   Ready    <none>   29m   v1.13.11-gke.14   10.132.0.37   104.199.27.54   Container-Optimized OS from Google   4.14.138+        docker://18.9.7
+gke-standard-cluster-1-default-pool-b8d3a11d-c0hf   Ready    <none>   29m   v1.13.11-gke.14   10.132.0.35   34.77.29.62     Container-Optimized OS from Google   4.14.138+        docker://18.9.7
 
-
+```
+а также порт публикации сервиса ui:
+```
+kubectl describe service ui  -n dev  | grep NodePort
+```
+```shell
+Type:                     NodePort
+NodePort:                 <unset>  32092/TCP
+```
 
  </p>
  </details>
