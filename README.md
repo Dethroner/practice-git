@@ -3,6 +3,8 @@
 [![Build Status](https://travis-ci.org/Dethroner/practice-git.svg?branch=master)](https://travis-ci.org/Dethroner/practice-git)
 [![License](https://img.shields.io/badge/license-MIT%20License-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
+[Докер-хаб](https://hub.docker.com/u/dethroner )
+
 <details><summary>01. Система контроля версий. Принципы работы с Git.</summary>
 <p>
 
@@ -2960,7 +2962,9 @@ node-3       Ready    <none>   47m     v1.17.0
 При развертывании кубернетис кластера через террформ с использованием GKE, сначала будет развернут кластер с дефолтными нодами, т.к. нельзя развернуть кластер без нод. После этого, дефолтный node-pool будет удален и вместо него создастся описаный в `google_container_node_pool` пул нод.
 Важно, что если в свойстве location кластера указать зону, то будет развернута только 1 мастер в указанной зоне. Если указать регион, то будет развернуто по экземпляру мастера в каждой зоне региона. Аналогичная ситуация со свойством location в пуле нод. Если указать зону, то в зоне будет развернуто указанной в `node_count` колличество нод. Но если указать регион, то в каждой зоне указанного региона будет развернуто колличество нод, указанное в `node_count`
 
-### Запуск приложения в одноузловом кластере с помощью Minikube
+### Запуск приложения в локальном кластере
+
+#### Запуск приложения в одноузловом кластере с помощью Minikube
 1. Запускаю кластер minikube выделив под ВМ 4 CPU и 8 Гб RAM:
 ```
 minikube start --vm-driver=virtualbox --cpus 4 --memory 8192
@@ -3058,7 +3062,7 @@ ui-5fbcbf86d-k6p28         1/1     Running            0          84m
 ui-5fbcbf86d-wpp62         1/1     Running            0          84m
 ui-5fbcbf86d-zqj4g         1/1     Running            0          84m
 ```
-#### Использование сервисов
+##### Использование сервисов
 В текущем состоянии приложение не будет работать, т.к. его компоненты ещё не знают как найти друг друга.<br>
 Для связи компонент между собой и с внешним миром используется объект Service - абстракция, которая определяет набор POD-ов (Endpoints) и способ доступа к ним.<br>
 
@@ -3157,7 +3161,7 @@ minikube service ui
 ```
 kubectl delete -f ./3
 ```
-#### Использование Namespace в kubernetes
+##### Использование Namespace в kubernetes
 **Namespace** - это, по сути, виртуальный кластер внутри кластера кубернетиса. Неймспейсы можно использовать для создания различных окружений внутри кластера или же для какого-либо логического разделения работающих сервисов. Внутри каждого такого кластера находятся свои объекты (POD-ы, Service-ы, Deployment-ы и т.д.), кроме объектов, общих на все namespace-ы (nodes, ClusterRoles, PersistentVolumes).
 
 В разных нейспейсах могут находиться объекты с одинковым именем, но в рамках одного namespace имена объектов должны быть уникальны.
@@ -3167,7 +3171,7 @@ kubectl delete -f ./3
 - kube-system - для объектов созданных кубером и для управления им;
 - kube-public - для объектов к которым нужен доступ из любой точки кластера.
 
-##### Создание среды для разработки
+###### Создание среды для разработки
 Отделяю среду для разработки от всего остального кластера, создав dev namespace.
 
 Описываю этот неймспейс в файле [dev-namespace.yml](k8s/examples/dev-namespace.yml)
@@ -3216,6 +3220,53 @@ minikube delete
 Теперь самое время запустить его на реальном кластере Kubernetes.
 
 ### Запуск приложения на реальном кластере Kubernetes
+
+#### Многоузловой кластер Kubernetes
+1. Создаю кластер с помощью Vagrant и Ansible.
+```
+cd vagrant/examples/6
+vagrant init
+vagrant up
+```
+2. После запуска инфраструктуры подлючаюсь к master-node:
+```
+ssh -i ~/.ssh/appuser appuser@10.50.10.10
+```
+3. Запускаю приложение:
+- Создаю dev namespace:
+```
+cd k8s/examples
+kubectl apply -f dev-namespace.yml
+```
+- Запускаю деплой всех компонентов приложения в namespace dev:
+```
+kubectl apply -n dev -f ./4/comment
+kubectl apply -n dev -f ./4/mongo
+kubectl apply -n dev -f ./4/post
+kubectl apply -n dev -f ./4/ui
+```
+4. Проверяю IP-адреса нод из кластера: 
+```
+kubectl get nodes -n dev -o wide
+```
+```shell
+NAME         STATUS   ROLES    AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+k8s-master   Ready    master   42h   v1.17.0   10.50.10.10   <none>        Ubuntu 18.04.3 LTS   4.15.0-70-generic   docker://19.3.5
+node-1       Ready    <none>   41h   v1.17.0   10.50.10.21   <none>        Ubuntu 18.04.3 LTS   4.15.0-70-generic   docker://19.3.5
+node-2       Ready    <none>   41h   v1.17.0   10.50.10.22   <none>        Ubuntu 18.04.3 LTS   4.15.0-70-generic   docker://19.3.5
+node-3       Ready    <none>   41h   v1.17.0   10.50.10.23   <none>        Ubuntu 18.04.3 LTS   4.15.0-70-generic   docker://19.3.5
+```
+а также порт публикации сервиса ui:
+```
+kubectl describe service ui  -n dev  | grep NodePort
+```
+```shell
+Type:                     NodePort
+NodePort:                 <unset>  32092/TCP
+```
+5. Захожу на сервис по указанному адресу - http://INTERNAL-IP:NodePort
+
+#### Кластер Kubernetes платформа Google Kubernetes Engine
 1. Создаю кластер в облаке GCP с помощью платформы Google Kubernetes Engine.
 ```
 cd terraform/examples/9
@@ -3271,6 +3322,10 @@ kubectl describe service ui  -n dev  | grep NodePort
 Type:                     NodePort
 NodePort:                 <unset>  32092/TCP
 ```
+5. Захожу на сервис по указанному адресу - http://EXTERNAL-IP:NodePort
+
+
+
 
  </p>
  </details>
