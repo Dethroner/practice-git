@@ -2,7 +2,8 @@
 
 [![Build Status](https://travis-ci.org/Dethroner/practice-git.svg?branch=master)](https://travis-ci.org/Dethroner/practice-git)
 [![License](https://img.shields.io/badge/license-MIT%20License-brightgreen.svg)](https://opensource.org/licenses/MIT)
-[![Dockerhub](http://www.w3.org/2000/svg)(https://hub.docker.com/u/dethroner)
+
+[Dockerhub](https://hub.docker.com/u/dethroner)
 
 <details><summary>01. Система контроля версий. Принципы работы с Git.</summary>
 <p>
