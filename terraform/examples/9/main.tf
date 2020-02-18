@@ -1,7 +1,7 @@
 ### KUBERNETES GCP###
 terraform {
   # версия terraform
-  required_version = "~> 0.11.7"
+  required_version = "<= 0.12.20"
 }
 
 provider "google" {
@@ -9,14 +9,14 @@ provider "google" {
   version = "2.16.0"
 
   # id проекта
-  project = "${var.project}"
+  project = var.project
 
-  region = "${var.region}"
+  region = var.region
 }
 
 resource "google_container_cluster" "cluster" {
   name     = "cluster"
-  location = "${var.zone}"
+  location = var.zone
 
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default
@@ -49,13 +49,13 @@ resource "google_container_cluster" "cluster" {
 
 resource "google_container_node_pool" "reddit-pool" {
   name = "reddit-pool"
-  location = "${var.zone}"
-  cluster = "${google_container_cluster.cluster.name}"
-  node_count = "${var.node_count}"
+  location = var.zone
+  cluster = google_container_cluster.cluster.name
+  node_count = var.node_count
 
   node_config {
-    machine_type = "${var.node_machine_type}"
-    disk_size_gb = "${var.node_disk_size}"
+    machine_type = var.node_machine_type
+    disk_size_gb = var.node_disk_size
 
     oauth_scopes = [
       "https://www.googleapis.com/auth/logging.write",

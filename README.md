@@ -2,8 +2,7 @@
 
 [![Build Status](https://travis-ci.org/Dethroner/practice-git.svg?branch=master)](https://travis-ci.org/Dethroner/practice-git)
 [![License](https://img.shields.io/badge/license-MIT%20License-brightgreen.svg)](https://opensource.org/licenses/MIT)
-
-[Докер-хаб](https://hub.docker.com/u/dethroner )
+[![Dockerhub](http://www.w3.org/2000/svg)(https://hub.docker.com/u/dethroner)
 
 <details><summary>01. Система контроля версий. Принципы работы с Git.</summary>
 <p>
@@ -3324,6 +3323,145 @@ NodePort:                 <unset>  32092/TCP
 ```
 5. Захожу на сервис по указанному адресу - http://EXTERNAL-IP:NodePort
 
+#### Кластер Kubernetes платформа Google Kubernetes Engine + LoadBalancer
+Тип NodePort хоть и предоставляет доступ к сервису снаружи, но открывать все порты наружу или искать IP-адреса нод (которые вообще динамические) не очень удобно.<br>
+Тип LoadBalancer позволяет нам использовать внешний облачный балансировщик нагрузки как единую точку входа в наши сервисы, а не полагаться на IPTables и не открывать наружу весь кластер.
+
+Для его работы надо настроить соответствующим образом раздел spec: [ui-service.yml](k8s/examples/5/ui/ui-service.yml)
+
+Проверяю как это будет выглядеть.<br>
+1. Создаю кластер в облаке GCP с помощью платформы Google Kubernetes Engine.
+```
+cd terraform/examples/9
+terraform init
+terraform apply
+```
+После создания кластера иду в gcloud console, иду в "Kubernetes Engine" -> "Кластеры" и жму кнопку "Подключится" и копирую команду подключения к кластеру. Затем ввожу ее в консоли ПК.<br>
+2. Запускаю приложение в GKE<br>
+- Создаю dev namespace
+```
+cd k8s/examples
+kubectl apply -f dev-namespace.yml
+```
+- Запускаю деплой всех компонентов приложения в namespace dev:
+```
+kubectl apply -n dev -f ./5/comment
+kubectl apply -n dev -f ./5/mongo
+kubectl apply -n dev -f ./5/post
+kubectl apply -n dev -f ./5/ui
+```
+3. Проверяю, как работает:
+```
+kubectl get service  -n dev --selector component=ui
+```
+```shell
+NAME   TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+ui     LoadBalancer   10.27.248.120   <pending>     80:32092/TCP   3s
+```
+идет настройка ресурсов GCP, пробую попозже перепроверить:
+```
+kubectl get service  -n dev --selector component=ui
+```
+```shell
+NAME   TYPE           CLUSTER-IP      EXTERNAL-IP     PORT(S)        AGE
+ui     LoadBalancer   10.27.248.120   35.227.164.74   80:32092/TCP   65s
+```
+Все отработало, пробую зайти на адрес http://35.227.164.74 и вижу работающее приложение.
+
+4. А что за кулисами? Открываю консоль GCP жму "Сетевые сервисы" -> "Балансировка нагрузки" и вижу созданное правило для балансировки:
+```
+ad5250515382511eab26f42010a8a001
+Интерфейсная ВМ
+Протокол	IP-адрес: порт	Уровень сети 
+TCP	35.227.164.74:80	Премиум
+Серверная ВМ
+Название: ad5250515382511eab26f42010a8a001 Регион: us-west1 Привязка сеанса: Не указано Проверка состояния: k8s-bae873c372ced1d3-node
+Экземпляры	Зона	35.227.164.74
+gke-cluster-reddit-pool-1329f9b4-k7b7	us-west1-b	
+gke-cluster-reddit-pool-1329f9b4-b7qw	us-west1-b	
+```
+
+Балансировка с помощью Service типа LoadBalancing имеет ряд недостатков: 
+• нельзя управлять с помощью http URL ...
+• используются только облачные балансировщики (AWS, GCP и тп.)
+• нет гибких правил работы с трафиком
+
+#### Кластер Kubernetes платформа Google Kubernetes Engine + Ingress
+Для более удобного управления входящим снаружи трафиком и решения недостатков LoadBalancer можно использовать другой объект Kubernetes - Ingress.<br>
+Ingress – это набор правил внутри кластера Kubernetes, предназначенных для того, чтобы входящие подключения могли достичь сервисов (Services).<br>
+Сами по себе Ingress’ы это просто правила. Для их применения нужен Ingress Controller.<br>
+В отличие остальных контроллеров k8s - он не стартует вместе с кластером.
+
+Ingress Controller - это скорее плагин (а значит и отдельный POD), который состоит из 2-х функциональных частей: 
+- Приложение, которое отслеживает через k8s API новые объекты Ingress и обновляет конфигурацию балансировщика;
+- Балансировщик (Nginx, haproxy, traeﬁk,…), который и занимается управлением сетевым трафиком.
+
+Основные задачи, решаемые с помощью Ingress’ов: 
+- Организация единой точки входа в приложения снаружи;
+- Обеспечение балансировки трафика;
+- Терминация SSL;
+- Виртуальный хостинг на основе имен и т.д.
+
+Google в GKE уже предоставляет возможность использовать их собственные решения балансирощик в качестве Ingress controller-ов.
+
+1. Перехожу в настройки кластера в веб-консоли gcloud и проверяю что встроенный Ingress включен. 
+
+2. Создаю Ingress для сервиса UI [ui-ingress.yml](k8s/examples/6/ui/ui-ingress.yml) и запускаю:
+- Создаю dev namespace
+```
+cd k8s/examples
+kubectl apply -f dev-namespace.yml
+```
+- Запускаю деплой всех компонентов приложения в namespace dev:
+```
+kubectl apply -n dev -f ./6/comment
+kubectl apply -n dev -f ./6/mongo
+kubectl apply -n dev -f ./6/post
+kubectl apply -n dev -f ./6/ui
+```
+2.1. Singe Service Ingress - значит, что весь ingress контроллер будет просто балансировать нагрузку на Node-ы для одного сервиса очень похоже на Service LoadBalancer).
+
+Зайдя в консоль GCP и вижу правило.<br>
+Это NodePort опубликованного сервиса.<br>
+Т.е. для работы с Ingress в GCP нам нужен минимум Service с типом NodePort (он уже есть).
+
+2.2. Заставляю работать Ingress Controller как классический веб [ui-ingress.yml](k8s/examples/7/ui/ui-ingress.yml)
+```
+kubectl apply -n dev -f ./7/ui
+```
+2.3. Защищаю сервис с помощью TLS.
+- Смотрю Ingress IP
+```
+kubectl get ingress -n dev
+```
+```shell
+
+```
+- Генерирую сертификат используя IP как CN
+```
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN= 35.190.66.90"
+```
+- Гружу сертификат в кластер kubernetes
+```
+kubectl create secret tls ui-ingress --key tls.key --cert tls.crt -n dev
+```
+- Проверяю
+```
+kubectl describe secret ui-ingress -n dev
+```
+- Настроил Ingress на прием только HTTPS-траффика [ui-ingress.yml](k8s/examples/8/ui/ui-ingress.yml)
+```
+kubectl apply -n dev -f ./8/ui
+```
+Зайдя на страницу web console вижу в описании балансировщика только один протокол HTTPS.<br>
+Иногда протокол HTTP может не удалиться у существующего Ingress правила, тогда нужно его вручную удалить и пересоздать:
+```
+kubectl delete ingress ui -n dev
+kubectl apply -f ui-ingress.yml -n dev
+```
+Захожу на страницу приложения по https, подтверждаю исключение безопасности (сертификат самоподписанный) и вижу что все работает.
+
+- Создаю объект Secret в виде Kubernetes-манифеста [ui-secret-ingress.yml](k8s/examples/9/ui/ui-secret-ingress.yml)
 
 
 
