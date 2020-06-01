@@ -219,7 +219,7 @@ self.assertEqual(1, 1)
 - Подклчюение по vpn через бастион-хост
 - Настройка ssl сертификатов для vpn-сервера
 
-### Регистрация учетной записи в GCP
+### Создание учетной записи в GCP
 Регистрация производится по ссылке: https://cloud.google.com/free/
 Лучше всего использовать отдельный аккаунт Gmail.
 ### Установка gcloud
@@ -3463,11 +3463,63 @@ kubectl apply -f ui-ingress.yml -n dev
 Захожу на страницу приложения по https, подтверждаю исключение безопасности (сертификат самоподписанный) и вижу что все работает.
 
 - Создаю объект Secret в виде Kubernetes-манифеста [ui-secret-ingress.yml](k8s/examples/9/ui/ui-secret-ingress.yml)
-
-
-
  </p>
  </details>
+
+<details><summary>16. Основные сервисы Amazon Web Services (AWS).</summary>
+<p>
+
+## Amazon Web Services (AWS):
+
+Наиболее часто используемые сервисы, на мой взгляд: <br>
+- virtual servers        -> EC2 Instances<br>
+- virtual networks       -> VPC<br>
+- web space              -> S3 Bucket<br>
+- web Sites Hosting      -> S3 Web Hosting<br>
+- DNS                    -> Route 53<br>
+- SQL & noSQL DB         -> RDS, Dynamo DB<br>
+- Infrastructure as Code -> CloudFormation<br>
+- Automation             -> Elastic Beanstalk<br>
+
+В данном домашнем задании было сделано:<br>
+- Создание учетной записи в AWS<br>
+- Первичные настройки учетной записи после регистрации<br>
+- Установка aws cli
+
+### Создание учетной записи в AWS
+Регистрация производится по ссылке: https://aws.amazon.com/ru/
+Нажав кнопку ***Создайте бесплатный аккаунт*** заполняю регистрационную формуа, в процессе регистрации необходимы:<br> 
+1. Номер кредитной карты с возможностью оплаты через Интернет (будет списан 1$ проверка ее работоспособности);<br>
+2. Номер реального телефона (у меня автоматическая проверка телефона не сработала, пришлось завершать регистрацию через службу поддержки).
+
+### Первичные настройки учетной записи после регистрации
+Делал настройки по [инструкции](https://www.youtube.com/watch?v=NBBIjFUQ2W0&list=PLg5SS_4L6LYsxrZ_4xE_U95AtGsIB96k9&index=5).<br>
+1. Настроил алиас ссылки для входа в консоль, чтобы был не цифровой ID, а нормальное имя: <br>
+Services -> IAM -> IAM users sign-in link:(Cusomize) <br>
+2. Создал рабочего пользователя с подключением по ключу (ключи сохранил в файле):<br>
+Services -> IAM -> Create individual IAM users -> Add user -> admin (Create access key)<br>
+3. В процессе создания пользователя параллельно создал группу Administrators:<br>
+Create group -> Administrators -> AdminAccess (роль)<br>
+4. Включил двухфакторную аутентификацию.
+
+### Установка aws cli
+Устанавливал по [инструкции](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html).
+[Инструкция по установке в Linux](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html)
+Авторизировался в системе:
+```
+aws configure
+```
+Ответив на вопросы (ключи взял из файла пользователя), пример:
+```
+AWS Access Key ID [None]: AKIAIOSFODNN7EXAMPLE
+AWS Secret Access Key [None]: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+Default region name [None]: us-west-2
+Default output format [None]: ENTER
+```
+
+
+</p>
+</details>
 </p>
 </details>
  
