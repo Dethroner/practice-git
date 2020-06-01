@@ -3465,7 +3465,8 @@ kubectl apply -f ui-ingress.yml -n dev
 - Создаю объект Secret в виде Kubernetes-манифеста [ui-secret-ingress.yml](k8s/examples/9/ui/ui-secret-ingress.yml)
  </p>
  </details>
-
+</p>
+</details>
 <details><summary>16. Основные сервисы Amazon Web Services (AWS).</summary>
 <p>
 
@@ -3516,10 +3517,17 @@ AWS Secret Access Key [None]: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 Default region name [None]: us-west-2
 Default output format [None]: ENTER
 ```
+### запуск простого EC2 инстанса
+```
+cd ./terraform/examples/10
+terraform init
+terraform apply
+```
+Проверяю через aws cli:
+```
+aws ec2 describe-instances
+```
 
-
-</p>
-</details>
 </p>
 </details>
  
