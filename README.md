@@ -3527,6 +3527,34 @@ terraform apply
 ```
 aws ec2 describe-instances
 ```
+### запуск EC2 инстанса с доступом по SSH
+```
+cd ./terraform/examples/11
+terraform init
+terraform apply
+```
+После запуска ВМ выведется информация:
+```
+external-ip = [
+  "18.157.84.232",
+]
+```
+Соответственно, подключаюсь к этому адресу по SSH исполььзуя имя ***ec2-user*** согласно [инструкции](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connection-prereqs.html) для выбранного типа ami образа:
+```
+ssh -i ~/.ssh/key.pem ec2-user@18.157.84.232
+```
+и вижу приветствие ВМ:
+```
+
+       __|  __|_  )
+       _|  (     /   Amazon Linux AMI
+      ___|\___|___|
+
+https://aws.amazon.com/amazon-linux-ami/2018.03-release-notes/
+5 package(s) needed for security, out of 7 available
+Run "sudo yum update" to apply all updates.
+[ec2-user@ip-172-31-4-7 ~]$
+```
 
 </p>
 </details>
