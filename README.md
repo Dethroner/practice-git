@@ -3592,7 +3592,7 @@ Run "sudo yum update" to apply all updates.
 ```
 ### запуск EC2 инстанса с доступом по SSH и автоматической установкой LEMP
 ```
-cd ./terraform/examples/11
+cd ./terraform/examples/12
 terraform init
 terraform apply
 ```
