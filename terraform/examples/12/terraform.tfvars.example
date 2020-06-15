@@ -1,0 +1,7 @@
+akey = "AKIAIOSFODNN7EXAMPLE"
+skey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+region = "us-west-2EXAMPLE"
+ami = "ami-05c26ae4789875080EXAMPLE"
+aws_key_pair = "ssh-rsa ....EXAMPLE"
+keypath = " ~/.ssh/key.pem"
+vpc_id="vpc-12409777EXAMPLE"

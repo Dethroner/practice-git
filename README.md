@@ -3527,6 +3527,41 @@ terraform apply
 ```
 aws ec2 describe-instances
 ```
+получаю ответ:
+```
+{
+    "Reservations": [
+        {
+            "Groups": [],
+            "Instances": [
+                {
+            "Groups": [],
+            "Instances": [
+                {
+                    "AmiLaunchIndex": 0,
+                    "ImageId": "ami-0a9e2b8a093c02922",
+                    "InstanceId": "i-086dab84cf90e1f50",
+                    "InstanceType": "t2.micro",
+                    "LaunchTime": "2020-06-12T07:28:39.000Z",
+                    "Monitoring": {
+                        "State": "disabled"
+                    },
+                    "Placement": {
+                        "AvailabilityZone": "eu-central-1c",
+                        "GroupName": "",
+                        "Tenancy": "default"
+                    },
+                    "PrivateDnsName": "ip-172-31-3-33.eu-central-1.compute.internal",
+                    "PrivateIpAddress": "172.31.3.33",
+                    "ProductCodes": [],
+                    "PublicDnsName": "ec2-18-196-129-234.eu-central-1.compute.amazonaws.com",
+                    "PublicIpAddress": "18.196.129.234",
+                    "State": {
+                        "Code": 16,
+                        "Name": "running"
+                    },
+...
+```
 ### запуск EC2 инстанса с доступом по SSH
 ```
 cd ./terraform/examples/11
