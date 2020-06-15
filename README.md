@@ -3590,6 +3590,13 @@ https://aws.amazon.com/amazon-linux-ami/2018.03-release-notes/
 Run "sudo yum update" to apply all updates.
 [ec2-user@ip-172-31-4-7 ~]$
 ```
+### запуск EC2 инстанса с доступом по SSH и автоматической установкой LEMP
+```
+cd ./terraform/examples/11
+terraform init
+terraform apply
+```
+После запуска ВМ ввожу external-ip в браузер и попадаю на страницу с информацией об установленном php и ссылкой на phpMyAdmin.
 
 </p>
 </details>
