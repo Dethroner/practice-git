@@ -20,7 +20,7 @@ resource "null_resource" "soft_install" {
 
   provisioner "remote-exec" {
     inline = [
-	  "chmod +x /tmp/lemp.sh",
+      "chmod +x /tmp/lemp.sh",
       "/tmp/lemp.sh",
     ]
   }

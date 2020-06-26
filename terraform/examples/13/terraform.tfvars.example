@@ -1,0 +1,33 @@
+akey                                = "AKIAIOSFODNN7EXAMPLE"
+skey                                = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+region                              = "eu-central-1EXAMPLE"
+
+# Custom VPC variables
+name                                = "TEST-VPC"
+environment                         = "PROD"
+instance_tenancy                    = "dedicated"
+enable_dns_support                  = "true"
+enable_dns_hostnames                = "true"
+assign_generated_ipv6_cidr_block    = "false"
+enable_classiclink                  = "false"
+vpc_cidr                            = "192.168.0.0/16"
+private_subnet_cidrs                = ["192.168.64.0/20"]
+public_subnet_cidrs                 = ["192.168.80.0/20"]
+availability_zones                  = ["eu-central-1a", "eu-central-1b", "eu-central-1c"]
+allowed_ports                       = ["80", "443", "3306"]
+
+#Internet-GateWay
+enable_internet_gateway             = "true"
+
+#NAT
+enable_nat_gateway                  = "false"
+single_nat_gateway                  = "true"
+
+#VPN
+enable_vpn_gateway                  = "false"
+
+#DHCP
+enable_dhcp_options                 = "false"
+
+# EIP
+enable_eip                          = "false"
